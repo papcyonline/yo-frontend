@@ -1,0 +1,53 @@
+{
+  "common": {
+    "continue": "Продолжить",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "close": "Закрыть",
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "success": "Успех",
+    "yes": "Да",
+    "no": "Нет",
+    "ok": "ОК",
+    "back": "Назад",
+    "next": "Далее",
+    "done": "Готово",
+    "skip": "Пропустить"
+  },
+  "language": {
+    "selectLanguage": "Выбрать язык",
+    "choosePreferred": "Выберите предпочитаемый язык",
+    "currentLanguage": "Текущий язык"
+  },
+  "auth": {
+    "welcomeToYoFam": "Добро пожаловать в YoFam",
+    "signIn": "Войти",
+    "signUp": "Регистрация",
+    "createAccount": "Создать аккаунт",
+    "email": "Электронная почта",
+    "password": "Пароль",
+    "confirmPassword": "Подтвердить пароль",
+    "firstName": "Имя",
+    "lastName": "Фамилия",
+    "phoneNumber": "Номер телефона",
+    "forgotPassword": "Забыли пароль?",
+    "alreadyHaveAccount": "Уже есть аккаунт?",
+    "dontHaveAccount": "Нет аккаунта?",
+    "termsAndConditions": "Условия использования",
+    "privacyPolicy": "Политика конфиденциальности",
+    "agreeToTerms": "Я согласен с условиями обслуживания и политикой конфиденциальности"
+  },
+  "navigation": {
+    "dashboard": "Панель",
+    "friends": "Друзья",
+    "matches": "Совпадения",
+    "communities": "Сообщества",
+    "profile": "Профиль",
+    "settings": "Настройки",
+    "notifications": "Уведомления",
+    "chats": "Чаты"
+  }
+}

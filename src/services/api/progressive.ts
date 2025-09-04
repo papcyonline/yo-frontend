@@ -89,7 +89,7 @@ class ProgressiveProfileAPI {
 
   // Get all saved answers
   async getAnswers(): Promise<ApiResponse<AnswersResponse>> {
-    return apiService.get(`${this.baseURL}/progressive/answers`);
+    return apiService.get(`/api/ai/chatflow/responses`);
   }
 
   // Save multiple answers in batch

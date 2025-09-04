@@ -148,7 +148,7 @@ const UserProfileScreen: React.FC<UserProfileProps> = ({ navigation, route }) =>
       setLoadingResponses(true);
       console.log('📋 Fetching AI questionnaire responses...');
       
-      const response = await fetch(`${API_CONFIG.BASE_URL}/users/progressive/answers`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/ai/chatflow/responses`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

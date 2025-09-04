@@ -59,6 +59,15 @@ export const API_ENDPOINTS = {
   CHAT_ASSISTANT: '/ai/chat-assistant',
   ENHANCE_PROFILE: '/ai/enhance-profile',
   PROFILE_COMPLETION_ANALYSIS: '/ai/profile-completion-analysis',
+  
+  // AI Chatflow endpoints
+  CHATFLOW_NEXT_QUESTION: '/ai/chatflow/next-question',
+  CHATFLOW_SAVE_ANSWER: '/ai/chatflow/save-answer',
+  CHATFLOW_UNANSWERED: '/ai/chatflow/unanswered',
+  CHATFLOW_STATUS: '/ai/chatflow/status',
+  CHATFLOW_RESET: '/ai/chatflow/reset',
+  CHATFLOW_RESPONSES: '/ai/chatflow/responses',
+  CHATFLOW_SYNC_PROFILE: '/ai/chatflow/sync-profile',
 
   // Social endpoints
   GET_SOCIAL_CONNECTIONS: '/social/connections',

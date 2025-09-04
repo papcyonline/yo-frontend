@@ -95,8 +95,8 @@ export const ENDPOINTS = {
   PRIVACY_POLICY: '/settings/privacy-policy',
   ABOUT: '/settings/about',
   
-  // Progressive Profile
-  PROGRESSIVE_STATUS: '/users/progressive/status',
-  SAVE_ANSWER: '/users/progressive/answer',
-  FINALIZE_PROFILE: '/users/progressive/finalize',
+  // Progressive Profile (updated to chatflow endpoints)
+  PROGRESSIVE_STATUS: '/ai/chatflow/status',
+  SAVE_ANSWER: '/ai/chatflow/save-answer',
+  FINALIZE_PROFILE: '/ai/chatflow/sync-profile',
 } as const;

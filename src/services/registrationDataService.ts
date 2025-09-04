@@ -51,8 +51,8 @@ export const saveRegistrationToProfile = async (token: string, data: Registratio
     
     console.log('📝 Registration data to save:', registrationAnswers);
     
-    // Save to progressive profile using batch endpoint
-    const response = await fetch(`${API_CONFIG.BASE_URL}/users/progressive/save-batch`, {
+    // Save to progressive profile using chatflow endpoint
+    const response = await fetch(`${API_CONFIG.BASE_URL}/ai/chatflow/save-answer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

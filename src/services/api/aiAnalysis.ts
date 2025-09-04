@@ -36,7 +36,7 @@ class AIAnalysisAPI {
   async syncAndAnalyze(): Promise<ApiResponse<{ syncResult: any; analysis: ProfileCompletionAnalysis }>> {
     try {
       // First sync progressive profile data
-      const syncResponse = await apiService.post('/users/progressive/sync-to-profile');
+      const syncResponse = await apiService.post('/ai/chatflow/sync-profile');
       
       // Then get AI analysis
       const analysisResponse = await this.getProfileCompletionAnalysis();

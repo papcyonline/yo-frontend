@@ -394,7 +394,7 @@ const ProgressiveProfileScreen: React.FC<ProgressiveProfileProps> = ({ navigatio
       }
       
       // Also load saved answers from MongoDB endpoint
-      const response = await fetch(`${API_CONFIG.BASE_URL}/users/progressive/answers`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/ai/chatflow/responses`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${useAuthStore.getState().token}`,

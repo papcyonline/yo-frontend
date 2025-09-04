@@ -80,7 +80,7 @@ class ProgressiveProfileAPI {
     answer: any, 
     points = 0
   ): Promise<ApiResponse<SaveAnswerResponse>> {
-    return apiService.post(`${this.baseURL}/progressive/save-answer`, {
+    return apiService.post(`/api/ai/chatflow/save-answer`, {
       questionId,
       answer,
       points

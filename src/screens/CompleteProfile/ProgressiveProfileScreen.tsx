@@ -501,7 +501,7 @@ const ProgressiveProfileScreen: React.FC<ProgressiveProfileProps> = ({ navigatio
     
     // Save to MongoDB backend API
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/users/progressive/save-answer`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/ai/chatflow/save-answer`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${useAuthStore.getState().token}`,

@@ -256,32 +256,32 @@ const UpdatesSection: React.FC<UpdatesSectionProps> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
-    height: 100,
+    paddingVertical: 4,
+    height: 80,
   },
   loadingContainer: {
-    height: 100,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statusList: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 8,
   },
   addStatusContainer: {
     alignItems: 'center',
-    width: 65,
+    width: 60,
   },
   addStatusCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    marginBottom: 4,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginBottom: 2,
   },
   glassMorphism: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 2,
     borderColor: '#04a7c7',
@@ -290,16 +290,16 @@ const styles = StyleSheet.create({
   },
   statusItem: {
     alignItems: 'center',
-    width: 65,
+    width: 60,
   },
   statusCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 2,
     borderColor: '#04a7c7',
     padding: 2,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   viewedCircle: {
     borderColor: '#666',
@@ -307,19 +307,19 @@ const styles = StyleSheet.create({
   statusImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 26,
+    borderRadius: 23,
   },
   avatarPlaceholder: {
     width: '100%',
     height: '100%',
-    borderRadius: 26,
+    borderRadius: 23,
     backgroundColor: '#0091ad',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   statusLabel: {

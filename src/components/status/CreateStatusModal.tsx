@@ -43,6 +43,7 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
   const [text, setText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasGalleryPermission, setHasGalleryPermission] = useState(false);
+  const [isLoadingGallery, setIsLoadingGallery] = useState(false);
   const textInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -52,26 +53,75 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
   }, [visible]);
 
   const loadGalleryImages = async () => {
+    setIsLoadingGallery(true);
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status === 'granted') {
+      console.log('📸 [DEBUG] Starting loadGalleryImages...');
+      
+      // First check current permission status
+      const permissionResponse = await MediaLibrary.getPermissionsAsync();
+      console.log('📸 [DEBUG] Current permission status:', permissionResponse);
+      
+      let finalStatus = permissionResponse.status;
+      
+      // Request permission if not granted
+      if (finalStatus !== 'granted') {
+        console.log('📸 [DEBUG] Requesting MediaLibrary permissions...');
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        finalStatus = status;
+        console.log('📸 [DEBUG] New permission status:', finalStatus);
+      }
+      
+      if (finalStatus === 'granted') {
         setHasGalleryPermission(true);
+        console.log('📸 [DEBUG] Loading gallery assets...');
+        
+        // Load images with more specific options
         const assets = await MediaLibrary.getAssetsAsync({
           first: 50,
           mediaType: MediaLibrary.MediaType.photo,
-          sortBy: MediaLibrary.SortBy.creationTime
+          sortBy: MediaLibrary.SortBy.creationTime,
         });
-        setGalleryImages(assets.assets);
-        if (assets.assets.length > 0 && !selectedImage) {
-          setSelectedImage(assets.assets[0].uri);
+        
+        console.log('📸 [DEBUG] Assets response:', assets);
+        console.log('📸 [DEBUG] Assets loaded count:', assets.assets?.length || 0);
+        
+        if (assets.assets && assets.assets.length > 0) {
+          // Filter out invalid assets
+          const validAssets = assets.assets.filter(asset => 
+            asset && asset.uri && asset.uri.length > 0
+          );
+          console.log('📸 [DEBUG] Valid assets count:', validAssets.length);
+          
+          setGalleryImages(validAssets);
+          
+          if (validAssets.length > 0 && !selectedImage) {
+            console.log('📸 First image selected:', validAssets[0].uri);
+          }
+        } else {
+          console.log('📸 [DEBUG] No assets found in gallery');
+          setGalleryImages([]);
         }
       } else {
-        console.log('Gallery permission not granted');
+        console.log('❌ Gallery permission not granted:', finalStatus);
         setHasGalleryPermission(false);
+        if (finalStatus === 'denied') {
+          Alert.alert(
+            'Permission Denied', 
+            'Photo library access was denied. Please enable it in your device settings to add images to your status.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => console.log('Open settings requested') }
+            ]
+          );
+        }
       }
     } catch (error) {
-      console.error('Error loading gallery:', error);
-      Alert.alert('Error', 'Failed to load gallery images');
+      console.error('❌ Error loading gallery:', error);
+      Alert.alert('Error', `Failed to load gallery images: ${error.message}`);
+      setHasGalleryPermission(false);
+      setGalleryImages([]);
+    } finally {
+      setIsLoadingGallery(false);
     }
   };
 
@@ -108,9 +158,10 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
       return;
     }
 
+    console.log('📝 [DEBUG] Starting handlePost...');
     setIsLoading(true);
     try {
-      console.log('📝 Creating status with:', { hasText: !!text.trim(), hasImage: !!selectedImage });
+      console.log('📝 [DEBUG] Creating status with:', { hasText: !!text.trim(), hasImage: !!selectedImage });
       
       const statusData: any = {
         visibility: 'friends'
@@ -130,8 +181,9 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
         console.log('📷 Image data prepared for upload');
       }
 
+      console.log('📝 [DEBUG] Calling StatusAPI.createStatus with:', statusData);
       const response = await StatusAPI.createStatus(statusData);
-      console.log('📝 Status creation response:', response);
+      console.log('📝 [DEBUG] Status creation response:', response);
       
       if (response.success) {
         // Handle both response.data and response.status formats
@@ -162,7 +214,12 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
 
   const renderGalleryTab = () => (
     <View style={styles.galleryContainer}>
-      {!hasGalleryPermission ? (
+      {isLoadingGallery ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#04a7c7" />
+          <Text style={styles.loadingText}>Loading gallery...</Text>
+        </View>
+      ) : !hasGalleryPermission ? (
         <View style={styles.emptyGallery}>
           <Text style={styles.emptyText}>Gallery permission required</Text>
           <TouchableOpacity onPress={loadGalleryImages} style={styles.permissionButton}>
@@ -183,6 +240,9 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
                 source={{ uri: item.uri }} 
                 style={styles.galleryImage}
                 resizeMode="cover"
+                onError={(error) => {
+                  console.log('Image loading error for URI:', item.uri, error);
+                }}
               />
               {selectedImage === item.uri && (
                 <View style={styles.selectedOverlay}>
@@ -413,6 +473,17 @@ const styles = StyleSheet.create({
     color: '#444',
     fontSize: 14,
     marginTop: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  loadingText: {
+    color: '#666',
+    fontSize: 16,
+    marginTop: 16,
   },
   permissionButton: {
     marginTop: 16,

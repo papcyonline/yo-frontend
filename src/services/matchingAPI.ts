@@ -78,9 +78,10 @@ class MatchingAPI {
   }
 
   private async getAuthToken(): Promise<string> {
-    // Get token from AsyncStorage using the correct key
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    return await AsyncStorage.getItem('yofam_auth_token') || '';
+    // Get token from auth store
+    const { useAuthStore } = require('../store/authStore');
+    const token = useAuthStore.getState().token;
+    return token || '';
   }
 
   // Get matches by type with pagination

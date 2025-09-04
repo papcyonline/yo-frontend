@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, Pattern, Rect, Circle } from 'react-native-svg';
 import { useAuthStore } from '../../../store/authStore';
 import { getSystemFont } from '../../../config/constants';
+import { aiAnalysisAPI } from '../../../services/api/aiAnalysis';
 
 const { width } = Dimensions.get('window');
 
@@ -18,12 +19,16 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [headerAnim] = useState(new Animated.Value(0));
   const [profileAnim] = useState(new Animated.Value(0));
   const [menuAnim] = useState(new Animated.Value(0));
+  const [profileCompletion, setProfileCompletion] = useState({ percentage: 0, isComplete: false });
 
   useEffect(() => {
     // Sync profile data when component mounts
     if (user && !profileSyncInProgress) {
       syncProfileFromBackend();
     }
+
+    // Load profile completion data using same API as Dashboard
+    loadProfileCompletion();
 
     Animated.stagger(200, [
       Animated.timing(headerAnim, {
@@ -45,6 +50,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       })
     ]).start();
   }, []);
+
+  const loadProfileCompletion = async () => {
+    try {
+      const response = await aiAnalysisAPI.getProfileCompletionAnalysis();
+      if (response.success && response.data) {
+        setProfileCompletion({
+          percentage: response.data.completionScore,
+          isComplete: response.data.isComplete
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load profile completion:', error);
+    }
+  };
 
   const getDisplayName = () => {
     if (user?.fullName && user.fullName !== 'User') {
@@ -81,31 +100,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   const isProfileComplete = () => {
-    return user?.profile_complete || user?.profile_completed || false;
+    return profileCompletion.isComplete || user?.profile_complete || user?.profile_completed || false;
   };
 
   const getProfileCompletionPercentage = () => {
-    if (!user) return 0;
-    
-    // Count filled fields from registration
-    let filledFields = 0;
-    let totalFields = 10; // Base registration fields
-    
-    if (user.fullName || user.name) filledFields++;
-    if (user.email) filledFields++;
-    if (user.phone) filledFields++;
-    if (user.date_of_birth || user.dateOfBirth) filledFields++;
-    if (user.location || user.current_location) filledFields++;
-    if (user.gender) filledFields++;
-    
-    // Count AI questionnaire responses
-    if (user.ai_questionnaire_responses) {
-      const responseCount = Object.keys(user.ai_questionnaire_responses).length;
-      filledFields += responseCount;
-      totalFields += 15; // Approximate total AI questions
-    }
-    
-    return Math.min(Math.round((filledFields / totalFields) * 100), 100);
+    return profileCompletion.percentage || 0;
   };
 
   return (

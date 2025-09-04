@@ -406,6 +406,14 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         console.log('✅ Login successful');
         console.log('User data:', result.data.user);
         
+        // Import auth store and set user/tokens immediately
+        const { useAuthStore } = require('../../store/authStore');
+        const { setUser, setTokens } = useAuthStore.getState();
+        
+        // Set auth data in store immediately
+        setUser(result.data.user);
+        setTokens(result.data.token, result.data.refreshToken || result.data.token);
+        
         // Navigate to main app
         navigation.navigate('MainApp', {
           userId: result.data.user.id,
@@ -490,6 +498,14 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       const result = await response.json();
 
       if (response.ok && result.success) {
+        // Import auth store and set user/tokens immediately
+        const { useAuthStore } = require('../../store/authStore');
+        const { setUser, setTokens } = useAuthStore.getState();
+        
+        // Set auth data in store immediately
+        setUser(result.data.user);
+        setTokens(result.data.token, result.data.refreshToken || result.data.token);
+        
         navigation.navigate('MainApp', {
           userId: result.data.user.id,
           user: result.data.user,

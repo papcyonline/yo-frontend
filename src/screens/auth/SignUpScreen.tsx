@@ -41,6 +41,14 @@ const SignUpScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       const result = await googleAuthService.signUpWithGoogle(promptAsync);
       
       if (result.success && result.user) {
+        // Import auth store and set user/tokens immediately
+        const { useAuthStore } = require('../../store/authStore');
+        const { setUser, setTokens } = useAuthStore.getState();
+        
+        // Set auth data in store immediately
+        setUser(result.user);
+        setTokens(result.token, result.refreshToken || result.token);
+        
         navigation.navigate('MainApp', {
           userId: result.userId,
           user: result.user,

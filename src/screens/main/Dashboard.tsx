@@ -12,6 +12,7 @@ import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { DashboardTabs } from '../../components/dashboard/DashboardTabs';
 import { BottomNavigation } from '../../components/dashboard/BottomNavigation';
 import UpdatesSection from '../../components/status/UpdatesSection';
+import SocialsFeed from '../../components/social/SocialsFeed';
 import { useAuthStore } from '../../store/authStore';
 import { apiService } from '../../services/api';
 import { aiAnalysisAPI } from '../../services/api/aiAnalysis';
@@ -146,6 +147,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
   const [isCheckingCompletion, setIsCheckingCompletion] = useState(false);
   const [aiAnalysisData, setAiAnalysisData] = useState(null);
   const [ratingPromptTimeout, setRatingPromptTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [completionPercentage, setCompletionPercentage] = useState(0);
 
   // Check if we have user data, if not redirect to login
   useEffect(() => {
@@ -224,14 +226,11 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
         if (aiResponse.success) {
           setAiAnalysisData(aiResponse.data);
           
-          // Override AI analysis if user hasn't done questionnaire
-          const hasCompletedQuestionnaire = user.ai_questionnaire_completed || user.questionnaire_completed;
-          const shouldForceIncomplete = !hasCompletedQuestionnaire;
-          
+          // Use AI analysis data directly without overriding
           const completionData = {
-            percentage: shouldForceIncomplete ? 10 : aiResponse.data.completionScore,
-            isComplete: shouldForceIncomplete ? false : aiResponse.data.isComplete,
-            missing: shouldForceIncomplete ? ['ai_questionnaire', 'profile_questions'] : aiResponse.data.criticalMissing
+            percentage: aiResponse.data.completionScore,
+            isComplete: aiResponse.data.isComplete,
+            missing: aiResponse.data.criticalMissing
           };
           
           setProfileCompletionData(completionData);
@@ -444,9 +443,11 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
           user.profileCompleted === true
         );
     
-    const completionPercentage = profileCompletionData 
+    const currentCompletionPercentage = profileCompletionData 
       ? profileCompletionData.percentage 
       : user?.completionPercentage || 0;
+    
+    setCompletionPercentage(currentCompletionPercentage);
     
     // Profile completion popup disabled
     // if (user && !isProfileComplete && completionPercentage < 80) {
@@ -473,11 +474,9 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
     // }
   }, [profileCompletionData, user?.profile_completed, user?.profile_complete, user?.profileCompleted, user]);
 
-  // Navigate to Communities when tab is selected
+  // Handle Socials tab activation
   useEffect(() => {
-    if (activeTab === 'communities') {
-      navigation.navigate('Communities', { user });
-    }
+    // Socials tab stays on dashboard, no navigation needed
   }, [activeTab]);
 
   // Load matches data from API
@@ -764,18 +763,19 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
     }
   };
 
-  // Communities tab with proper navigation
+  // Social feed tab with proper navigation
   const tabsData = [
     { id: 'family', title: 'Family Match', icon: 'people' },
     { id: 'friends', title: 'Friends Match', icon: 'heart' },
-    { id: 'communities', title: 'Communities', icon: 'globe' }
+    { id: 'socials', title: 'Socials', icon: 'camera' }
   ];
 
   // Handle dashboard tabs properly
   const handleTabPress = (tabId: string) => {
-    if (tabId === 'communities') {
-      // Navigate to CommunityPage same as bottom navigation
-      navigation.navigate('CommunityPage', { user });
+    if (tabId === 'socials') {
+      // Stay on dashboard and show socials feed
+      setActiveTab(tabId);
+      setActiveBottomTab('family');
     } else {
       // For family and friends, just switch tabs within dashboard
       setActiveTab(tabId);
@@ -930,7 +930,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
         return (
           <View style={styles.listContainer}>
             {/* Complete Profile Section */}
-            {user && !(profileCompletionData?.isComplete || user.profile_completed === true || user.profile_complete === true || user.profileCompleted === true) && (
+            {user && (completionPercentage < 85) && (
               <TouchableOpacity 
                 style={styles.completeProfileCard}
                 onPress={() => navigation.navigate('ProgressiveProfile', {
@@ -1067,18 +1067,9 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
             </View>
           </View>
         );
-      case 'communities':
+      case 'socials':
         return (
-          <View style={styles.listContainer}>
-            {/* Communities content - redirecting */}
-            <View style={styles.comingSoon}>
-              <View style={styles.comingSoonIcon}>
-                <Ionicons name="globe-outline" size={48} color="#0091ad" />
-              </View>
-              <Text style={styles.comingSoonText}>Opening Communities...</Text>
-              <Text style={styles.comingSoonSubtext}>Connecting you with heritage groups</Text>
-            </View>
-          </View>
+          <SocialsFeed user={user} />
         );
       default:
         return null;
@@ -1102,26 +1093,32 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
         onTabPress={handleTabPress}
       />
 
-      <ScrollView 
-        style={dynamicStyles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#0091ad']}
-            tintColor="#0091ad"
-            progressBackgroundColor="#1a1a1a"
-          />
-        }
-      >
-        {/* Updates Section - Shows under header */}
-        <UpdatesSection navigation={navigation} />
-        
-        {/* Main Tab Content */}
-        {renderTabContent()}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+      {activeTab === 'socials' ? (
+        <View style={dynamicStyles.content}>
+          {renderTabContent()}
+        </View>
+      ) : (
+        <ScrollView 
+          style={dynamicStyles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#0091ad']}
+              tintColor="#0091ad"
+              progressBackgroundColor="#1a1a1a"
+            />
+          }
+        >
+          {/* Updates Section - Shows under header */}
+          <UpdatesSection navigation={navigation} />
+          
+          {/* Main Tab Content */}
+          {renderTabContent()}
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+      )}
 
       <BottomNavigation
         activeTab={activeBottomTab}
@@ -1138,8 +1135,8 @@ const styles = StyleSheet.create({
   // Note: container and content moved to dynamicStyles for theming
   // These static styles remain for non-themed elements
   listContainer: {
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
     paddingHorizontal: 8, // Much reduced from 20
     position: 'relative',
   },

@@ -136,18 +136,42 @@ class ApiService {
   // Upload method for files
   async upload<T = any>(url: string, formData: FormData): Promise<ApiResponse<T>> {
     if (__DEV__) {
-      console.log('🚀 Starting file upload to:', url);
+      console.log('🚀 [API] Starting file upload to:', url);
+      console.log('🚀 [API] FormData entries:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, typeof value === 'object' ? `[File: ${(value as any)?.name || 'unknown'}]` : value);
+      }
     }
     
-    return this.request<T>({
-      method: 'POST',
-      url,
-      data: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      timeout: 60000, // 60 seconds for file uploads
-    });
+    try {
+      // For file uploads, we need to explicitly set the Content-Type to multipart/form-data
+      // and let axios handle the boundary generation
+      const response = await this.client({
+        method: 'POST',
+        url,
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000, // 60 seconds for file uploads
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      // Handle network errors
+      if (!error.response) {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection.',
+        };
+      }
+
+      // Return server error response
+      return error.response.data || {
+        success: false,
+        error: 'An unexpected error occurred.',
+      };
+    }
   }
 
   // Upload profile photo

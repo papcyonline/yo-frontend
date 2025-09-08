@@ -8,12 +8,14 @@ import {
   StyleSheet,
   Alert,
   SafeAreaView,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuthStore } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { useAuthStore } from '../../store/authStore';
 import StatusCard from '../../components/status/StatusCard';
-import CreateStatusModal from '../../components/status/CreateStatusModal';
+import StatusViewModal from '../../components/status/StatusViewModal';
 import { StatusAPI } from '../../services/api/status';
 
 interface Status {
@@ -61,13 +63,15 @@ interface Status {
   updated_at: string;
 }
 
-const StatusFeedScreen: React.FC = () => {
+const UpdatesScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
   const [offset, setOffset] = useState(0);
 
   const LIMIT = 20;
@@ -76,41 +80,36 @@ const StatusFeedScreen: React.FC = () => {
   const { user } = useAuthStore();
   const currentUserId = user?._id || user?.id || '';
 
-  // Debug log the current user
-  useEffect(() => {
-    console.log('📱 [DEBUG] Current user from auth store:', user);
-    console.log('📱 [DEBUG] Current user ID:', currentUserId);
-  }, [user, currentUserId]);
-
-  // Fetch status feed
+  // Fetch status feed (only others' statuses)
   const fetchStatusFeed = useCallback(async (isRefresh = false, currentOffset = 0) => {
     try {
-      const result = await StatusAPI.getStatusFeed(LIMIT, currentOffset);
+      const feedResult = await StatusAPI.getStatusFeed(LIMIT, currentOffset);
 
-      if (result.success) {
+      if (feedResult.success) {
+        const newStatuses = feedResult.data?.statuses || feedResult.statuses || [];
+        // Filter out current user's statuses - only show others' statuses
+        const othersStatuses = newStatuses.filter(status => status.user_id._id !== currentUserId);
+        
         if (isRefresh || currentOffset === 0) {
-          setStatuses(result.data?.statuses || result.statuses || []);
+          setStatuses(othersStatuses);
           setOffset(LIMIT);
         } else {
-          // Prevent duplicates when loading more
-          const newStatuses = result.data?.statuses || result.statuses || [];
           setStatuses(prev => {
             const existingIds = new Set(prev.map(s => s._id));
-            const uniqueNewStatuses = newStatuses.filter(s => !existingIds.has(s._id));
+            const uniqueNewStatuses = othersStatuses.filter(s => !existingIds.has(s._id));
             return [...prev, ...uniqueNewStatuses];
           });
           setOffset(currentOffset + LIMIT);
         }
         
-        setHasMoreData(result.data?.hasMore ?? result.hasMore ?? false);
-      } else {
-        Alert.alert('Error', result.message || result.error || 'Failed to load status feed');
+        setHasMoreData(feedResult.data?.hasMore ?? feedResult.hasMore ?? false);
       }
     } catch (error) {
       console.error('Error fetching status feed:', error);
-      Alert.alert('Error', 'Failed to load status feed');
+      Alert.alert('Error', 'Failed to load updates');
     }
-  }, []);
+  }, [currentUserId]);
+
 
   // Initial load
   useEffect(() => {
@@ -139,6 +138,17 @@ const StatusFeedScreen: React.FC = () => {
     setIsLoadingMore(false);
   }, [fetchStatusFeed, offset, hasMoreData, isLoadingMore]);
 
+  // Handle status press for viewing
+  const handleStatusPress = (status: Status) => {
+    setSelectedStatus(status);
+    setShowViewModal(true);
+    
+    // Record view if not own status
+    if (status.user_id._id !== currentUserId) {
+      StatusAPI.recordView(status._id).catch(console.error);
+    }
+  };
+
   // Handle like status
   const handleLike = useCallback(async (statusId: string) => {
     try {
@@ -148,6 +158,7 @@ const StatusFeedScreen: React.FC = () => {
         throw new Error(result.message || result.error || 'Failed to like status');
       }
 
+      // Update local state
       // Update local state
       setStatuses(prev =>
         prev.map(status => {
@@ -177,19 +188,16 @@ const StatusFeedScreen: React.FC = () => {
 
   // Handle comment
   const handleComment = useCallback((statusId: string) => {
-    // TODO: Navigate to comment screen or show comment modal
     Alert.alert('Comments', 'Comment functionality will be implemented');
   }, []);
 
   // Handle share
   const handleShare = useCallback((status: Status) => {
-    // Already handled in StatusCard component
     console.log('Status shared:', status._id);
   }, []);
 
   // Handle user press
   const handleUserPress = useCallback((userId: string) => {
-    // TODO: Navigate to user profile
     console.log('User pressed:', userId);
   }, []);
 
@@ -199,7 +207,6 @@ const StatusFeedScreen: React.FC = () => {
       const result = await StatusAPI.deleteStatus(statusId);
 
       if (result.success) {
-        // Remove status from local state
         setStatuses(prev => prev.filter(status => status._id !== statusId));
       } else {
         throw new Error(result.message || result.error || 'Failed to delete status');
@@ -210,25 +217,21 @@ const StatusFeedScreen: React.FC = () => {
     }
   }, []);
 
-  // Handle status created
-  const handleStatusCreated = useCallback((newStatus: Status) => {
-    setStatuses(prev => {
-      // Check if status already exists to prevent duplicates
-      const existingIndex = prev.findIndex(s => s._id === newStatus._id);
-      if (existingIndex >= 0) {
-        // Replace existing status
-        const updated = [...prev];
-        updated[existingIndex] = newStatus;
-        return updated;
-      }
-      // Add new status to the front
-      return [newStatus, ...prev];
-    });
-    setShowCreateModal(false);
-  }, []);
+  // Format time ago
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
 
-  // Render status item
-  const renderStatusItem = useCallback(({ item }: { item: Status }) => (
+    if (diffInMinutes < 1) return 'now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`;
+    return `${Math.floor(diffInMinutes / 1440)}d`;
+  };
+
+
+  // Render status card
+  const renderStatusCard = ({ item }: { item: Status }) => (
     <StatusCard
       status={item}
       currentUserId={currentUserId}
@@ -238,59 +241,70 @@ const StatusFeedScreen: React.FC = () => {
       onUserPress={handleUserPress}
       onDelete={handleDelete}
     />
-  ), [currentUserId, handleLike, handleComment, handleShare, handleUserPress, handleDelete]);
+  );
 
   // Render empty state
   const renderEmptyComponent = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="chatbubbles-outline" size={64} color="#CCC" />
-      <Text style={styles.emptyTitle}>No Status Updates</Text>
+      <Ionicons name="chatbubbles-outline" size={64} color="#666" />
+      <Text style={styles.emptyTitle}>No Updates Available</Text>
       <Text style={styles.emptySubtitle}>
-        Be the first to share what's on your mind!
+        No recent updates from friends and family
       </Text>
-      <TouchableOpacity 
-        style={styles.createFirstButton}
-        onPress={() => setShowCreateModal(true)}
-      >
-        <Text style={styles.createFirstButtonText}>Create Status</Text>
-      </TouchableOpacity>
     </View>
   );
 
-  // Render footer for loading more
+  // Render footer
   const renderFooter = () => {
     if (!isLoadingMore) return null;
     
     return (
       <View style={styles.loadingFooter}>
-        <Text style={styles.loadingText}>Loading more...</Text>
+        <ActivityIndicator size="small" color="#0091ad" />
       </View>
     );
   };
+
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Updates</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0091ad" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Status Updates</Text>
-        <TouchableOpacity 
-          style={styles.createButton}
-          onPress={() => setShowCreateModal(true)}
-        >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Updates</Text>
+        <View style={{ width: 36 }} />
       </View>
+
 
       {/* Status Feed */}
       <FlatList
         data={statuses}
-        renderItem={renderStatusItem}
+        renderItem={renderStatusCard}
         keyExtractor={(item, index) => item._id || `status-${index}`}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor="#007AFF"
+            tintColor="#0091ad"
           />
         }
         onEndReached={handleLoadMore}
@@ -301,12 +315,20 @@ const StatusFeedScreen: React.FC = () => {
         contentContainerStyle={statuses.length === 0 ? styles.emptyListContainer : undefined}
       />
 
-      {/* Create Status Modal */}
-      <CreateStatusModal
-        visible={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onStatusCreated={handleStatusCreated}
-      />
+
+      {/* View Status Modal */}
+      {showViewModal && selectedStatus && (
+        <StatusViewModal
+          visible={showViewModal}
+          status={selectedStatus}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedStatus(null);
+          }}
+          currentUserId={currentUserId}
+          onDelete={handleDelete}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -314,7 +336,7 @@ const StatusFeedScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -322,22 +344,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000000',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    borderBottomColor: '#333333',
+  },
+  backButton: {
+    padding: 4,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
   },
-  createButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#007AFF',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000000',
   },
   emptyListContainer: {
     flexGrow: 1,
@@ -351,36 +376,20 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#666',
+    color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 16,
-    color: '#999',
+    color: '#CCCCCC',
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 22,
-  },
-  createFirstButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginTop: 24,
-  },
-  createFirstButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
   loadingFooter: {
     padding: 16,
     alignItems: 'center',
   },
-  loadingText: {
-    color: '#666',
-    fontSize: 14,
-  },
 });
 
-export default StatusFeedScreen;
+export default UpdatesScreen;

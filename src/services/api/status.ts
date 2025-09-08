@@ -7,6 +7,8 @@ interface CreateStatusData {
   location_name?: string;
   latitude?: number;
   longitude?: number;
+  textBackgroundColor?: string;
+  textFontSize?: number;
   image?: {
     uri: string;
     name: string;
@@ -72,18 +74,39 @@ interface Viewer {
 export class StatusAPI {
   // Create a new status
   static async createStatus(data: CreateStatusData): Promise<ApiResponse<{ status: Status }>> {
+    console.log('📝 [StatusAPI] createStatus called with:', data);
+    
     const formData = new FormData();
 
-    if (data.text) formData.append('text', data.text);
-    if (data.visibility) formData.append('visibility', data.visibility);
+    if (data.text) {
+      console.log('📝 [StatusAPI] Adding text to formData:', data.text);
+      formData.append('text', data.text);
+    }
+    if (data.visibility) {
+      console.log('📝 [StatusAPI] Adding visibility to formData:', data.visibility);
+      formData.append('visibility', data.visibility);
+    }
     if (data.location_name) formData.append('location_name', data.location_name);
     if (data.latitude) formData.append('latitude', data.latitude.toString());
     if (data.longitude) formData.append('longitude', data.longitude.toString());
+    if (data.textBackgroundColor) formData.append('textBackgroundColor', data.textBackgroundColor);
+    if (data.textFontSize) formData.append('textFontSize', data.textFontSize.toString());
 
     if (data.image) {
-      formData.append('image', data.image as any);
+      console.log('📝 [StatusAPI] Adding image to formData:', data.image);
+      
+      // For React Native, we need to pass the image object directly with proper properties
+      const imageBlob = {
+        uri: data.image.uri,
+        type: data.image.type || 'image/jpeg',
+        name: data.image.name || 'image.jpg',
+      };
+      
+      formData.append('image', imageBlob as any);
+      console.log('📝 [StatusAPI] Image blob created:', imageBlob);
     }
 
+    console.log('📝 [StatusAPI] Final FormData prepared, calling upload...');
     return apiService.upload<{ status: Status }>('/status', formData);
   }
 

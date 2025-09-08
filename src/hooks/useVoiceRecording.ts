@@ -2,7 +2,7 @@
 // Updated to use expo-audio for voice recording
 import { useState, useRef, useEffect } from 'react';
 import { Alert, Platform, PermissionsAndroid, Animated } from 'react-native';
-import { Audio } from 'expo-audio';
+import * as Audio from 'expo-audio';
 import logger from '../services/LoggingService';
 
 export const useVoiceRecording = () => {
@@ -144,7 +144,7 @@ export const useVoiceRecording = () => {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
 
-      newRecording.setOnRecordingStatusUpdate((status) => {
+      newRecording.setOnRecordingStatusUpdate((status: Audio.RecordingStatus) => {
         if (!status.isRecording) {
           clearInterval(timer);
         }

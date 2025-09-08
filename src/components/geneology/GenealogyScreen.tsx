@@ -257,9 +257,26 @@ const GenealogyDashboard: React.FC<GenealogyDashboardProps> = ({ navigation, rou
       <AddChildModal
         visible={showAddChildModal}
         onClose={() => setShowAddChildModal(false)}
-        onAdd={addNewChild}
-        personData={newPersonData}
-        onDataChange={setNewPersonData}
+        onAdd={(data) => {
+          // Adapter function to convert AddChildModal data format to useFamilyTree format
+          setNewPersonData({
+            firstName: data.firstName,
+            lastName: data.lastName,
+            dateOfBirth: data.dateOfBirth,
+            placeOfBirth: data.placeOfBirth,
+            gender: data.gender,
+            bio: data.bio || '',
+          });
+        }}
+        personData={{
+          firstName: '',
+          lastName: '',
+          dateOfBirth: '',
+          placeOfBirth: '',
+          gender: 'male' as 'male' | 'female',
+          bio: ''
+        }}
+        onDataChange={() => {}}
       />
     </View>
   );

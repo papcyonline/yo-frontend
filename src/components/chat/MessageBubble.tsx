@@ -79,11 +79,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     const baseStyles = [styles.messageBubble];
     
     if (message.type === 'ai') {
-      baseStyles.push(styles.aiBubble);
+      baseStyles.push(styles.aiBubble as any);
     } else if (message.isFromCurrentUser) {
-      baseStyles.push(styles.sentBubble);
+      baseStyles.push(styles.sentBubble as any);
     } else {
-      baseStyles.push(styles.receivedBubble);
+      baseStyles.push(styles.receivedBubble as any);
     }
     
     return baseStyles;

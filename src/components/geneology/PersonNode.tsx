@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Person } from '../types/Person';
+import { Person } from './Person';
 import { getSystemFont } from '../../config/constants';
 
 interface PersonNodeProps {
@@ -23,8 +23,8 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ person, onPress }) => {
       onPress={onPress}
     >
       <View style={styles.personImageContainer}>
-        {person.profileImage ? (
-          <Image source={{ uri: person.profileImage }} style={styles.personImage} />
+        {person.photo ? (
+          <Image source={{ uri: person.photo }} style={styles.personImage} />
         ) : (
           <View style={[styles.personImagePlaceholder, !person.isAlive && styles.deceasedImagePlaceholder]}>
             <Text style={styles.personInitials}>
@@ -33,7 +33,7 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ person, onPress }) => {
           </View>
         )}
         
-        {person.isUser && (
+        {person.isCurrentUser && (
           <View style={styles.userBadge}>
             <Ionicons name="person" size={12} color="#ffffff" />
           </View>
@@ -50,14 +50,14 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ person, onPress }) => {
         {person.name}
       </Text>
       <Text style={styles.personDates}>
-        {person.birthDate ? new Date(person.birthDate).getFullYear() : '?'} - {' '}
-        {person.isAlive ? 'Present' : (person.deathDate ? new Date(person.deathDate).getFullYear() : '?')}
+        {person.dateOfBirth ? new Date(person.dateOfBirth).getFullYear() : '?'} - {' '}
+        {person.isAlive ? 'Present' : (person.dateOfDeath ? new Date(person.dateOfDeath).getFullYear() : '?')}
       </Text>
       
-      {person.children.length > 0 && (
+      {person.children && person.children.length > 0 && (
         <View style={styles.childrenIndicator}>
           <Ionicons name="people" size={12} color="#0091ad" />
-          <Text style={styles.childrenCount}>{person.children.length}</Text>
+          <Text style={styles.childrenCount}>{person.children?.length}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -67,53 +67,58 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ person, onPress }) => {
 const styles = StyleSheet.create({
   personNode: {
     alignItems: 'center',
-    marginHorizontal: 4,
-    marginVertical: 8,
-    padding: 8,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 10,
+    marginHorizontal: 8,
+    marginVertical: 4,
+    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    minWidth: 90,
-    maxWidth: 100,
-    borderWidth: 1,
-    borderColor: '#333333',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    minWidth: 100,
+    maxWidth: 120,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
   },
   currentUserNode: {
     borderWidth: 2,
     borderColor: '#04a7c7',
-    backgroundColor: '#0a0f1a',
+    backgroundColor: '#f0f9ff',
   },
   deceasedNode: {
-    backgroundColor: '#0f0f0f',
-    borderWidth: 1,
-    borderColor: '#404040',
+    backgroundColor: '#f8fafc',
+    borderWidth: 2,
+    borderColor: '#94a3b8',
+    opacity: 0.8,
   },
   personImageContainer: {
     position: 'relative',
     marginBottom: 6,
   },
   personImage: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 3,
+    borderColor: '#ffffff',
   },
   personImagePlaceholder: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: '#0091ad',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#04a7c7',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#ffffff',
   },
   deceasedImagePlaceholder: {
     backgroundColor: '#6b7280',
   },
   personInitials: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: getSystemFont('bold'),
     color: '#ffffff',
   },
@@ -144,31 +149,32 @@ const styles = StyleSheet.create({
     borderColor: '#1a1a1a',
   },
   personName: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: getSystemFont('semiBold'),
-    color: '#ffffff',
+    color: '#1e293b',
     textAlign: 'center',
-    marginBottom: 2,
-    numberOfLines: 2,
-    maxWidth: 85,
+    marginBottom: 4,
+    maxWidth: 95,
   },
   deceasedText: {
-    color: '#9ca3af',
+    color: '#64748b',
   },
   personDates: {
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: getSystemFont('regular'),
-    color: '#9ca3af',
+    color: '#64748b',
     textAlign: 'center',
-    marginBottom: 3,
+    marginBottom: 6,
   },
   childrenIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(4, 167, 199, 0.2)',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 8,
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#04a7c7',
   },
   childrenCount: {
     fontSize: 8,

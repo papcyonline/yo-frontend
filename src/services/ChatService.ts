@@ -74,7 +74,7 @@ export interface TypingUser {
 }
 
 class ChatService {
-  private socket: Socket | null = null;
+  public socket: Socket | null = null;
   private token: string | null = null;
   private listeners: Map<string, Function[]> = new Map();
   private isConnecting: boolean = false;

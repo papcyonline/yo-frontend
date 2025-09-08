@@ -54,7 +54,7 @@ import ModernProfileScreen from '../screens/main/profile/ModernProfileScreen';
 import MatchDetail from '../screens/main/MatchDetail';
 import CommunityDetailScreen from '../components/communities/CommunityDetailScreen';
 import CommunitiesScreen from '../components/communities/CommunitiesScreen';
-import GenealogyDashboard from '../components/geneology/GenealogyScreen';
+import WorkflowGenealogyScreen from '../components/geneology/WorkflowGenealogyScreen';
 
 // Chat Screens - Original Design
 import ChatsPage from '../components/chat/ChatsPage';           
@@ -64,6 +64,7 @@ import ConversationScreen from '../components/chat/ConversationsScreen';
 
 // Status/Updates Screens
 import StatusFeedScreen from '../screens/main/StatusFeedScreen';
+import UpdatesScreen from '../screens/status/UpdatesScreen';
 
 // Settings Screens - NEW IMPORTS
 import SettingsScreen from '../components/settings/SettingsScreen';
@@ -417,7 +418,7 @@ const AppNavigator: React.FC = () => {
 
         <Stack.Screen
           name="GenealogyDashboard"
-          component={GenealogyDashboard}
+          component={WorkflowGenealogyScreen}
           options={{
             headerShown: false,
             animation: 'slide_from_right'
@@ -460,6 +461,15 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen
           name="StatusFeed"
           component={StatusFeedScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right'
+          }}
+        />
+
+        <Stack.Screen
+          name="Updates"
+          component={UpdatesScreen}
           options={{
             headerShown: false,
             animation: 'slide_from_right'

@@ -17,6 +17,7 @@ import CreateStatusModal from './CreateStatusModal';
 import StatusViewModal from './StatusViewModal';
 import { StatusAPI } from '../../services/api/status';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '../../store/authStore';
 
 interface Update {
   _id: string;
@@ -54,25 +55,16 @@ const UpdatesSection: React.FC<UpdatesSectionProps> = ({ navigation }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Update | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string>('');
+  
+  // Get current user from auth store
+  const { user } = useAuthStore();
+  const currentUserId = user?._id || user?.id || '';
 
   useEffect(() => {
     console.log('📱 UpdatesSection mounted');
-    loadUserId();
+    console.log('📱 Current user ID:', currentUserId);
     loadUpdates();
   }, []);
-
-  const loadUserId = async () => {
-    try {
-      const userData = await AsyncStorage.getItem('user_data');
-      if (userData) {
-        const user = JSON.parse(userData);
-        setCurrentUserId(user._id || user.id);
-      }
-    } catch (error) {
-      console.error('Error loading user ID:', error);
-    }
-  };
 
   const loadUpdates = async () => {
     try {
@@ -104,8 +96,28 @@ const UpdatesSection: React.FC<UpdatesSectionProps> = ({ navigation }) => {
   };
 
   const handleStatusCreated = (newStatus: Update) => {
-    setMyUpdates(prev => [newStatus, ...prev]);
-    setUpdates(prev => [newStatus, ...prev]);
+    // Prevent duplicates in myUpdates
+    setMyUpdates(prev => {
+      const existingIndex = prev.findIndex(s => s._id === newStatus._id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = newStatus;
+        return updated;
+      }
+      return [newStatus, ...prev];
+    });
+    
+    // Prevent duplicates in general updates
+    setUpdates(prev => {
+      const existingIndex = prev.findIndex(s => s._id === newStatus._id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = newStatus;
+        return updated;
+      }
+      return [newStatus, ...prev];
+    });
+    
     setShowCreateModal(false);
   };
 
@@ -187,11 +199,12 @@ const UpdatesSection: React.FC<UpdatesSectionProps> = ({ navigation }) => {
               source={{ uri: update.media.thumbnail_url }} 
               style={styles.statusImage}
             />
-          ) : update.user_id.profile_photo_url ? (
-            <Image 
-              source={{ uri: update.user_id.profile_photo_url }} 
-              style={styles.statusImage}
-            />
+          ) : update.content?.text ? (
+            <View style={styles.textStatusContainer}>
+              <Text style={styles.textStatusPreview} numberOfLines={3}>
+                {update.content.text}
+              </Text>
+            </View>
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>
@@ -225,7 +238,7 @@ const UpdatesSection: React.FC<UpdatesSectionProps> = ({ navigation }) => {
         horizontal
         showsHorizontalScrollIndicator={false}
         data={statusData}
-        keyExtractor={(item, index) => item === 'add' ? 'add' : item._id}
+        keyExtractor={(item, index) => item === 'add' ? 'add' : `updates-${item._id}-${index}`}
         renderItem={renderStatusItem}
         contentContainerStyle={styles.statusList}
       />
@@ -321,6 +334,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  textStatusContainer: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 23,
+    backgroundColor: '#0091ad',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+  },
+  textStatusPreview: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 10,
   },
   statusLabel: {
     fontSize: 11,

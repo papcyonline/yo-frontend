@@ -265,7 +265,7 @@ const SocialsFeed: React.FC<SocialsFeedProps> = ({ user }) => {
       {renderHeader()}
       <FlatList
         data={posts}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `social-${item.id}-${index}`}
         renderItem={renderPost}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

@@ -1,17 +1,20 @@
-// src/screens/main/components/PersonDetailModal.tsx
 import React from 'react';
 import {
   View,
   Text,
-  Modal,
-  ScrollView,
-  TouchableOpacity,
-  Image,
   StyleSheet,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Person } from '../types/Person';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getSystemFont } from '../../config/constants';
+import { Person } from './Person';
+
+const { width } = Dimensions.get('window');
 
 interface PersonDetailModalProps {
   visible: boolean;
@@ -30,316 +33,482 @@ export const PersonDetailModal: React.FC<PersonDetailModalProps> = ({
 }) => {
   if (!person) return null;
 
+  const calculateAge = (birthDate?: string, deathDate?: string) => {
+    if (!birthDate) return null;
+    
+    const birth = new Date(birthDate);
+    const end = deathDate ? new Date(deathDate) : new Date();
+    const age = end.getFullYear() - birth.getFullYear();
+    
+    return age;
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return null;
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const age = calculateAge(person.dateOfBirth, person.dateOfDeath);
+
   return (
     <Modal
       visible={visible}
+      transparent={true}
       animationType="slide"
-      presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity style={styles.modalCloseButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#ffffff" />
-          </TouchableOpacity>
-          
-          <Text style={styles.modalTitle}>{person.name}</Text>
-          
-          {person.isEditable && (
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => onEdit(person)}
-            >
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <ScrollView style={styles.modalContent}>
-          {/* Profile Image */}
-          <View style={styles.modalImageContainer}>
-            {person.profileImage ? (
-              <Image source={{ uri: person.profileImage }} style={styles.modalImage} />
-            ) : (
-              <View style={styles.modalImagePlaceholder}>
-                <Text style={styles.modalInitials}>
-                  {person.name.split(' ').map(n => n[0]).join('')}
-                </Text>
-              </View>
-            )}
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <LinearGradient
+              colors={person.gender === 'male' ? ['#4A90E2', '#357ABD'] : ['#E24A90', '#C73E73']}
+              style={styles.headerGradient}
+            />
             
-            {!person.isAlive && (
-              <View style={styles.modalDeceasedBadge}>
-                <Ionicons name="rose" size={16} color="#ffffff" />
-                <Text style={styles.deceasedBadgeText}>In Memory</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Basic Info */}
-          <View style={styles.infoSection}>
-            <Text style={styles.sectionTitle}>Basic Information</Text>
-            
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar" size={20} color="#04a7c7" />
-              <Text style={styles.infoLabel}>Born:</Text>
-              <Text style={styles.infoValue}>
-                {person.birthDate ? new Date(person.birthDate).toLocaleDateString() : 'Unknown'}
-              </Text>
-            </View>
-            
-            {!person.isAlive && person.deathDate && (
-              <View style={styles.infoRow}>
-                <Ionicons name="rose" size={20} color="#ef4444" />
-                <Text style={styles.infoLabel}>Passed:</Text>
-                <Text style={styles.infoValue}>
-                  {new Date(person.deathDate).toLocaleDateString()}
-                </Text>
-              </View>
-            )}
-            
-            <View style={styles.infoRow}>
-              <Ionicons name="location" size={20} color="#04a7c7" />
-              <Text style={styles.infoLabel}>Born in:</Text>
-              <Text style={styles.infoValue}>{person.birthPlace || 'Unknown'}</Text>
-            </View>
-            
-            {person.currentLocation && (
-              <View style={styles.infoRow}>
-                <Ionicons name="home" size={20} color="#04a7c7" />
-                <Text style={styles.infoLabel}>Lives in:</Text>
-                <Text style={styles.infoValue}>{person.currentLocation}</Text>
-              </View>
-            )}
-            
-            {person.profession && (
-              <View style={styles.infoRow}>
-                <Ionicons name="briefcase" size={20} color="#04a7c7" />
-                <Text style={styles.infoLabel}>Profession:</Text>
-                <Text style={styles.infoValue}>{person.profession}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Biography */}
-          {person.bio && (
-            <View style={styles.infoSection}>
-              <Text style={styles.sectionTitle}>Biography</Text>
-              <Text style={styles.bioText}>{person.bio}</Text>
-            </View>
-          )}
-
-          {/* Family */}
-          <View style={styles.infoSection}>
-            <Text style={styles.sectionTitle}>Family</Text>
-            
-            <View style={styles.familyInfo}>
-              <Text style={styles.familyLabel}>Children: {person.children.length}</Text>
-              <TouchableOpacity style={styles.addChildButton} onPress={onAddChild}>
-                <Ionicons name="add" size={16} color="#04a7c7" />
-                <Text style={styles.addChildText}>Add Child</Text>
+            <View style={styles.headerContent}>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              
+              <Text style={styles.headerTitle}>Family Member</Text>
+              
+              <TouchableOpacity 
+                style={styles.editButton} 
+                onPress={() => onEdit(person)}
+              >
+                <Ionicons name="create-outline" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Photos */}
-          {person.photos && person.photos.length > 0 && (
-            <View style={styles.infoSection}>
-              <Text style={styles.sectionTitle}>Photos</Text>
-              <ScrollView horizontal style={styles.photosContainer}>
-                {person.photos.map((photo, index) => (
-                  <Image key={index} source={{ uri: photo }} style={styles.photoThumbnail} />
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Achievements */}
-          {person.achievements && person.achievements.length > 0 && (
-            <View style={styles.infoSection}>
-              <Text style={styles.sectionTitle}>Achievements</Text>
-              {person.achievements.map((achievement, index) => (
-                <View key={index} style={styles.achievementItem}>
-                  <Ionicons name="trophy" size={16} color="#fcd3aa" />
-                  <Text style={styles.achievementText}>{achievement}</Text>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Photo and Basic Info */}
+            <View style={styles.photoSection}>
+              <View style={[styles.photoContainer, { borderColor: person.gender === 'male' ? '#4A90E2' : '#E24A90' }]}>
+                {person.photo ? (
+                  <Image source={{ uri: person.photo }} style={styles.photo} />
+                ) : (
+                  <View style={[styles.photoPlaceholder, { backgroundColor: person.gender === 'male' ? '#4A90E2' : '#E24A90' }]}>
+                    <Ionicons 
+                      name={person.gender === 'male' ? 'man' : 'woman'} 
+                      size={60} 
+                      color="#FFFFFF" 
+                    />
+                  </View>
+                )}
+                
+                {person.isAIMatched && (
+                  <View style={styles.aiBadge}>
+                    <Ionicons name="sparkles" size={12} color="#FFD700" />
+                    <Text style={styles.aiBadgeText}>AI Match</Text>
+                  </View>
+                )}
+              </View>
+              
+              <Text style={styles.personName}>{person.name}</Text>
+              
+              {age && (
+                <Text style={styles.ageText}>
+                  {person.dateOfDeath ? `Lived ${age} years` : `${age} years old`}
+                </Text>
+              )}
+              
+              {person.isCurrentUser && (
+                <View style={styles.currentUserBadge}>
+                  <Ionicons name="person" size={12} color="#FFFFFF" />
+                  <Text style={styles.currentUserText}>You</Text>
                 </View>
-              ))}
+              )}
             </View>
-          )}
-        </ScrollView>
+
+            {/* Life Details */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Life Details</Text>
+              
+              {person.dateOfBirth && (
+                <View style={styles.detailRow}>
+                  <Ionicons name="calendar-outline" size={18} color="#666" />
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Born</Text>
+                    <Text style={styles.detailValue}>{formatDate(person.dateOfBirth)}</Text>
+                  </View>
+                </View>
+              )}
+              
+              {person.placeOfBirth && (
+                <View style={styles.detailRow}>
+                  <Ionicons name="location-outline" size={18} color="#666" />
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Birth Place</Text>
+                    <Text style={styles.detailValue}>{person.placeOfBirth}</Text>
+                  </View>
+                </View>
+              )}
+              
+              {person.dateOfDeath && (
+                <View style={styles.detailRow}>
+                  <Ionicons name="flower-outline" size={18} color="#666" />
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Passed Away</Text>
+                    <Text style={styles.detailValue}>{formatDate(person.dateOfDeath)}</Text>
+                  </View>
+                </View>
+              )}
+              
+              <View style={styles.detailRow}>
+                <Ionicons name="transgender-outline" size={18} color="#666" />
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Gender</Text>
+                  <Text style={styles.detailValue}>{person.gender === 'male' ? 'Male' : 'Female'}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Biography */}
+            {person.bio && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Biography</Text>
+                <Text style={styles.bioText}>{person.bio}</Text>
+              </View>
+            )}
+
+            {/* Family Connections */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Family Connections</Text>
+              
+              <View style={styles.connectionRow}>
+                <Ionicons name="people-outline" size={18} color="#666" />
+                <View style={styles.connectionContent}>
+                  <Text style={styles.connectionLabel}>Children</Text>
+                  <Text style={styles.connectionValue}>
+                    {person.children?.length || 0} {person.children?.length === 1 ? 'child' : 'children'}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.connectionRow}>
+                <Ionicons name="git-network-outline" size={18} color="#666" />
+                <View style={styles.connectionContent}>
+                  <Text style={styles.connectionLabel}>Parents</Text>
+                  <Text style={styles.connectionValue}>
+                    {person.parents?.length || 0} {person.parents?.length === 1 ? 'parent' : 'parents'}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.connectionRow}>
+                <Ionicons name="people-circle-outline" size={18} color="#666" />
+                <View style={styles.connectionContent}>
+                  <Text style={styles.connectionLabel}>Siblings</Text>
+                  <Text style={styles.connectionValue}>
+                    {person.siblings?.length || 0} {person.siblings?.length === 1 ? 'sibling' : 'siblings'}
+                  </Text>
+                </View>
+              </View>
+              
+              {person.spouse && (
+                <View style={styles.connectionRow}>
+                  <Ionicons name="heart-outline" size={18} color="#666" />
+                  <View style={styles.connectionContent}>
+                    <Text style={styles.connectionLabel}>Spouse</Text>
+                    <Text style={styles.connectionValue}>Married</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* AI Matching Info */}
+            {person.isAIMatched && person.matchConfidence && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>AI Match Information</Text>
+                <View style={styles.aiMatchInfo}>
+                  <View style={styles.confidenceBar}>
+                    <View style={[styles.confidenceFill, { width: `${person.matchConfidence}%` }]} />
+                  </View>
+                  <Text style={styles.confidenceText}>
+                    {person.matchConfidence}% confidence match
+                  </Text>
+                  <Text style={styles.aiDescription}>
+                    This person was matched using AI analysis based on family patterns, names, and genealogical data.
+                  </Text>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.addChildButton]} 
+              onPress={onAddChild}
+            >
+              <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.actionButtonText}>Add Child</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.editButtonAction]} 
+              onPress={() => onEdit(person)}
+            >
+              <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.actionButtonText}>Edit Details</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
   },
-  modalHeader: {
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+    width: '100%',
+  },
+  header: {
+    position: 'relative',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333333',
-    paddingTop: 50,
   },
-  modalCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1a1a1a',
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalTitle: {
+  headerTitle: {
     fontSize: 18,
-    fontFamily: getSystemFont('bold'),
-    color: '#ffffff',
+    fontFamily: getSystemFont('semiBold'),
+    color: '#FFFFFF',
   },
   editButton: {
-    backgroundColor: '#04a7c7',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  editButtonText: {
-    fontSize: 14,
-    fontFamily: getSystemFont('semiBold'),
-    color: '#ffffff',
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
-  },
-  modalImageContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    position: 'relative',
-  },
-  modalImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  modalImagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#0091ad',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalInitials: {
-    fontSize: 40,
-    fontFamily: getSystemFont('bold'),
-    color: '#ffffff',
+  content: {
+    flex: 1,
   },
-  modalDeceasedBadge: {
-    position: 'absolute',
-    bottom: 0,
-    left: '50%',
-    marginLeft: -40,
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    flexDirection: 'row',
+  photoSection: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  photoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    overflow: 'hidden',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  photo: {
+    width: '100%',
+    height: '100%',
+  },
+  photoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  deceasedBadgeText: {
-    fontSize: 12,
-    fontFamily: getSystemFont('semiBold'),
-    color: '#ffffff',
-    marginLeft: 4,
+  aiBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#333',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
-  infoSection: {
-    marginBottom: 24,
-    backgroundColor: '#1a1a1a',
+  aiBadgeText: {
+    fontSize: 10,
+    color: '#FFD700',
+    fontFamily: getSystemFont('medium'),
+  },
+  personName: {
+    fontSize: 24,
+    fontFamily: getSystemFont('bold'),
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  ageText: {
+    fontSize: 16,
+    fontFamily: getSystemFont('regular'),
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  currentUserBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#333333',
+    gap: 4,
+  },
+  currentUserText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontFamily: getSystemFont('medium'),
+  },
+  section: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: getSystemFont('bold'),
-    color: '#ffffff',
-    marginBottom: 16,
+    fontFamily: getSystemFont('semiBold'),
+    color: '#333',
+    marginBottom: 12,
   },
-  infoRow: {
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 12,
+  },
+  detailContent: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontFamily: getSystemFont('medium'),
+    color: '#666',
+    marginBottom: 2,
+  },
+  detailValue: {
+    fontSize: 16,
+    fontFamily: getSystemFont('regular'),
+    color: '#333',
+  },
+  bioText: {
+    fontSize: 16,
+    fontFamily: getSystemFont('regular'),
+    color: '#333',
+    lineHeight: 24,
+  },
+  connectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    gap: 12,
   },
-  infoLabel: {
+  connectionContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  connectionLabel: {
+    fontSize: 16,
+    fontFamily: getSystemFont('regular'),
+    color: '#333',
+  },
+  connectionValue: {
     fontSize: 14,
     fontFamily: getSystemFont('medium'),
-    color: '#9ca3af',
-    marginLeft: 12,
-    marginRight: 8,
-    minWidth: 80,
+    color: '#666',
   },
-  infoValue: {
+  aiMatchInfo: {
+    padding: 16,
+    backgroundColor: '#F8F9FF',
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4A90E2',
+  },
+  confidenceBar: {
+    height: 6,
+    backgroundColor: '#E5E5E5',
+    borderRadius: 3,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  confidenceFill: {
+    height: '100%',
+    backgroundColor: '#4A90E2',
+    borderRadius: 3,
+  },
+  confidenceText: {
     fontSize: 14,
+    fontFamily: getSystemFont('semiBold'),
+    color: '#4A90E2',
+    marginBottom: 4,
+  },
+  aiDescription: {
+    fontSize: 12,
     fontFamily: getSystemFont('regular'),
-    color: '#ffffff',
+    color: '#666',
+    lineHeight: 18,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+  actionButton: {
     flex: 1,
-  },
-  bioText: {
-    fontSize: 14,
-    fontFamily: getSystemFont('regular'),
-    color: '#d1d5db',
-    lineHeight: 20,
-  },
-  familyInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  familyLabel: {
-    fontSize: 14,
-    fontFamily: getSystemFont('medium'),
-    color: '#ffffff',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
   },
   addChildButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(4, 167, 199, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#04a7c7',
+    backgroundColor: '#34C759',
   },
-  addChildText: {
-    fontSize: 12,
-    fontFamily: getSystemFont('semiBold'),
-    color: '#04a7c7',
-    marginLeft: 4,
+  editButtonAction: {
+    backgroundColor: '#4A90E2',
   },
-  photosContainer: {
-    flexDirection: 'row',
-  },
-  photoThumbnail: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  achievementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  achievementText: {
+  actionButtonText: {
     fontSize: 14,
-    fontFamily: getSystemFont('regular'),
-    color: '#d1d5db',
-    marginLeft: 8,
-    flex: 1,
+    fontFamily: getSystemFont('semiBold'),
+    color: '#FFFFFF',
   },
 });

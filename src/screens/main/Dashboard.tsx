@@ -1,11 +1,12 @@
 // src/screens/main/Dashboard.tsx - Complete version with donut chart percentages
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, RefreshControl, Text, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Text, TouchableOpacity, Image } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, Pattern, Rect, Circle as SvgCircle, G } from 'react-native-svg';
+import { useAlert } from '../../context/AlertContext';
 
 // Components
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
@@ -88,6 +89,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
   const authStore = useAuthStore();
   const { theme, isDark } = useTheme();
   const { unreadCount } = useUnreadChats();
+  const { showError, success, showNetworkError, showAlert } = useAlert();
   
   // Create dynamic styles based on theme
   const dynamicStyles = StyleSheet.create({
@@ -344,10 +346,11 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
   // Show automatic rating prompt
   const showAutomaticRatingPrompt = async () => {
     try {
-      Alert.alert(
-        'Enjoying YoFam? 🌟',
-        'It looks like you\'re getting great value from YoFam! Would you mind taking a moment to rate us? It really helps other families discover our app.',
-        [
+      showAlert({
+        type: 'info',
+        title: 'Enjoying YoFam? 🌟',
+        message: 'It looks like you\'re getting great value from YoFam! Would you mind taking a moment to rate us? It really helps other families discover our app.',
+        buttons: [
           { 
             text: 'Not Now', 
             style: 'cancel',
@@ -388,9 +391,8 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
               }
             }
           }
-        ],
-        { cancelable: true }
-      );
+        ]
+      });
     } catch (error) {
       console.log('Failed to show rating prompt:', error);
     }
@@ -714,25 +716,13 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
       const result = await response.json();
 
       if (result.success) {
-        Alert.alert(
-          'Friend Request Sent!',
-          `Your friend request has been sent to ${matchData.name}`,
-          [{ text: 'OK' }]
-        );
+        success(`Friend request sent to ${matchData.name}!`);
       } else {
-        Alert.alert(
-          'Request Failed',
-          result.message || 'Unable to send friend request',
-          [{ text: 'OK' }]
-        );
+        showError('Request Failed', result.message || 'Unable to send friend request');
       }
     } catch (error) {
       console.error('Error sending friend request:', error);
-      Alert.alert(
-        'Network Error',
-        'Unable to send friend request. Please check your connection.',
-        [{ text: 'OK' }]
-      );
+      showNetworkError('Unable to send friend request. Please check your connection.');
     }
   };
 
@@ -767,7 +757,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
   const tabsData = [
     { id: 'family', title: 'Family Match', icon: 'people' },
     { id: 'friends', title: 'Friends Match', icon: 'heart' },
-    { id: 'socials', title: 'Socials', icon: 'camera' }
+    { id: 'socials', title: 'Social Media', icon: 'camera' }
   ];
 
   // Handle dashboard tabs properly
@@ -978,10 +968,10 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Family Matches</Text>
               <TouchableOpacity 
-                onPress={() => navigation.navigate('FamilyMatches' as never)}
+                onPress={() => navigation.navigate('Updates' as never)}
                 style={styles.viewAllButton}
               >
-                <Text style={styles.viewAllText}>View All</Text>
+                <Text style={styles.viewAllText}>View Status</Text>
                 <Ionicons name="arrow-forward" size={16} color="#0091ad" />
               </TouchableOpacity>
             </View>
@@ -1035,10 +1025,10 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Friend Suggestions</Text>
               <TouchableOpacity 
-                onPress={() => navigation.navigate('FriendMatches' as never)}
+                onPress={() => navigation.navigate('Updates' as never)}
                 style={styles.viewAllButton}
               >
-                <Text style={styles.viewAllText}>View All</Text>
+                <Text style={styles.viewAllText}>View Status</Text>
                 <Ionicons name="arrow-forward" size={16} color="#15803d" />
               </TouchableOpacity>
             </View>

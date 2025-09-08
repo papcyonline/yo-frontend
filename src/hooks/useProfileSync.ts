@@ -41,8 +41,8 @@ export const useProfileDisplay = () => {
     if (user?.fullName && user.fullName !== 'User') {
       return user.fullName;
     }
-    if (user?.name && user.name !== 'User') {
-      return user.name;
+    if ((user as any)?.name && (user as any).name !== 'User') {
+      return (user as any).name;
     }
     if (user?.first_name && user?.last_name) {
       return `${user.first_name} ${user.last_name}`;
@@ -68,7 +68,7 @@ export const useProfileDisplay = () => {
   };
 
   const getUserAvatar = () => {
-    return user?.avatar_url || user?.profileImage || null;
+    return user?.avatarUrl || (user as any)?.avatar_url || (user as any)?.profileImage || null;
   };
 
   const isProfileComplete = () => {

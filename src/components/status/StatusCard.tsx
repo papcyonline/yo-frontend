@@ -3,13 +3,17 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   Alert,
   StyleSheet,
   Dimensions,
-  Share
+  Share,
+  Modal
 } from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../../constants/colors';
+import { StatusAPI } from '../../services/api/status';
 
 interface StatusCardProps {
   status: {
@@ -61,6 +65,7 @@ interface StatusCardProps {
   onComment?: (statusId: string) => void;
   onShare?: (status: any) => void;
   onUserPress?: (userId: string) => void;
+  onDelete?: (statusId: string) => void;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -72,12 +77,61 @@ const StatusCard: React.FC<StatusCardProps> = ({
   onLike,
   onComment,
   onShare,
-  onUserPress
+  onUserPress,
+  onDelete
 }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(
     currentUserId ? status.engagement.likes.some(like => like.user_id === currentUserId) : false
   );
   const [likeCount, setLikeCount] = useState(status.engagement.likes.length);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [showViewersModal, setShowViewersModal] = useState(false);
+  const [showLikesModal, setShowLikesModal] = useState(false);
+  const [viewers, setViewers] = useState([]);
+  const [likers, setLikers] = useState(status.engagement.likes);
+  
+  // Check if this is user's own post - handle both _id and id fields
+  const statusUserId = status.user_id._id || status.user_id.id;
+  const isOwnPost = currentUserId && statusUserId && (currentUserId === statusUserId || currentUserId.toString() === statusUserId.toString());
+  
+  console.log('🔍 [StatusCard DEBUG] Checking ownership:', {
+    currentUserId,
+    statusUserId,
+    isOwnPost,
+    currentUserIdType: typeof currentUserId,
+    statusUserIdType: typeof statusUserId,
+    statusUserFullObject: status.user_id
+  });
+
+  // DEBUG: Log basic image info
+  if (status.media?.image_url) {
+    console.log('🖼️ [StatusCard] Status has image:', status.media.image_url.substring(0, 50) + '...');
+  }
+
+  // Helper function to validate and fix image URL
+  const getValidImageUrl = (url: string | undefined) => {
+    if (!url) return null;
+    
+    // Ensure it's a proper URL
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // If it's a relative Cloudinary path, make it absolute
+    if (url.includes('cloudinary.com') && !url.startsWith('http')) {
+      return `https://${url}`;
+    }
+    
+    // If it starts with res.cloudinary.com but missing protocol
+    if (url.startsWith('res.cloudinary.com')) {
+      return `https://${url}`;
+    }
+    
+    console.warn('🚨 [StatusCard] Invalid image URL format:', url);
+    return url; // Return as-is and let it fail with error handling
+  };
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -126,6 +180,53 @@ const StatusCard: React.FC<StatusCardProps> = ({
     }
   };
 
+  const handleDelete = () => {
+    setShowOptionsModal(false);
+    Alert.alert(
+      'Delete Status',
+      'Are you sure you want to delete this status? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            if (onDelete) {
+              onDelete(status._id);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleOptionsPress = () => {
+    if (isOwnPost) {
+      setShowOptionsModal(true);
+    }
+  };
+
+  const handleShowViewers = async () => {
+    if (!isOwnPost) return;
+    
+    try {
+      setShowViewersModal(true);
+      const response = await StatusAPI.getViewers(status._id);
+      
+      if (response.success && response.data) {
+        setViewers(response.data.viewers || []);
+      }
+    } catch (error) {
+      console.error('Error loading viewers:', error);
+      Alert.alert('Error', 'Failed to load viewers');
+    }
+  };
+
+  const handleShowLikes = () => {
+    if (!isOwnPost) return;
+    setShowLikesModal(true);
+  };
+
   const getImageDimensions = () => {
     if (!status.media?.image_width || !status.media?.image_height) {
       return { width: imageWidth, height: 300 };
@@ -152,7 +253,8 @@ const StatusCard: React.FC<StatusCardProps> = ({
           {status.user_id.profile_photo_url ? (
             <Image 
               source={{ uri: status.user_id.profile_photo_url }} 
-              style={styles.avatar} 
+              style={styles.avatar}
+              contentFit="cover"
             />
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
@@ -179,9 +281,11 @@ const StatusCard: React.FC<StatusCardProps> = ({
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
-        </TouchableOpacity>
+        {isOwnPost && (
+          <TouchableOpacity style={styles.moreButton} onPress={handleOptionsPress}>
+            <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Content */}
@@ -194,11 +298,54 @@ const StatusCard: React.FC<StatusCardProps> = ({
         {/* Image Content */}
         {status.media?.image_url && (
           <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: status.media.image_url }}
-              style={[styles.statusImage, getImageDimensions()]}
-              resizeMode="cover"
-            />
+            <LinearGradient
+              colors={[
+                COLORS.gradients.primary[0],   // Warm orange
+                COLORS.gradients.secondary[0], // Deep blue
+                COLORS.gradients.accent[0]     // Green
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientBackground}
+            >
+              <View style={styles.imageWrapper}>
+                <Image
+                  source={{ uri: getValidImageUrl(status.media.image_url) || status.media.image_url }}
+                  style={[styles.statusImage, getImageDimensions()]}
+                  contentFit="contain" // Changed from "cover" to show full image
+                  onLoad={() => {
+                    console.log('✅ [StatusCard] Image loaded successfully:', status.media.image_url);
+                    setImageLoaded(true);
+                    setImageError(false);
+                  }}
+                  onError={(error) => {
+                    console.log('❌ [StatusCard] Image load error:', error, 'URL:', status.media.image_url);
+                    setImageError(true);
+                    setImageLoaded(false);
+                  }}
+                  onLoadStart={() => {
+                    console.log('🔄 [StatusCard] Image load started:', status.media.image_url);
+                    setImageLoaded(false);
+                    setImageError(false);
+                  }}
+                  onLoadEnd={() => console.log('⏹️ [StatusCard] Image load ended:', status.media.image_url)}
+                />
+              </View>
+            </LinearGradient>
+            {/* Show overlay based on loading/error state */}
+            {(!imageLoaded && !imageError) && (
+              <View style={styles.imageLoadingOverlay}>
+                <Text style={styles.imageLoadingText}>Loading image...</Text>
+              </View>
+            )}
+            {imageError && (
+              <View style={[styles.imageLoadingOverlay, styles.imageErrorOverlay]}>
+                <Text style={styles.imageLoadingText}>Failed to load image</Text>
+                <Text style={styles.imageUrlText} numberOfLines={2}>
+                  {status.media.image_url}
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -234,35 +381,71 @@ const StatusCard: React.FC<StatusCardProps> = ({
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={handleLike}
-        >
-          <Ionicons 
-            name={isLiked ? "heart" : "heart-outline"} 
-            size={20} 
-            color={isLiked ? "#FF4444" : "#666"} 
-          />
-          <Text style={[styles.actionText, isLiked && { color: '#FF4444' }]}>
-            Like
-          </Text>
-        </TouchableOpacity>
+        {isOwnPost ? (
+          // Actions for own posts
+          <>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleShowViewers}
+            >
+              <Ionicons name="eye-outline" size={20} color="#666" />
+              <Text style={styles.actionText}>
+                {status.engagement.views || 0} views
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => onComment?.(status._id)}
-        >
-          <Ionicons name="chatbubble-outline" size={20} color="#666" />
-          <Text style={styles.actionText}>Comment</Text>
-        </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleShowLikes}
+            >
+              <Ionicons name="heart-outline" size={20} color="#666" />
+              <Text style={styles.actionText}>
+                {likeCount} likes
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={handleShare}
-        >
-          <Ionicons name="share-outline" size={20} color="#666" />
-          <Text style={styles.actionText}>Share</Text>
-        </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleDelete}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF4444" />
+              <Text style={[styles.actionText, { color: '#FF4444' }]}>Delete</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          // Actions for others' posts
+          <>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleLike}
+            >
+              <Ionicons 
+                name={isLiked ? "heart" : "heart-outline"} 
+                size={20} 
+                color={isLiked ? "#FF4444" : "#666"} 
+              />
+              <Text style={[styles.actionText, isLiked && { color: '#FF4444' }]}>
+                Like
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => onComment?.(status._id)}
+            >
+              <Ionicons name="chatbubble-outline" size={20} color="#666" />
+              <Text style={styles.actionText}>Comment</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleShare}
+            >
+              <Ionicons name="share-outline" size={20} color="#666" />
+              <Text style={styles.actionText}>Share</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Recent Comments Preview */}
@@ -293,6 +476,118 @@ const StatusCard: React.FC<StatusCardProps> = ({
           )}
         </View>
       )}
+
+      {/* Options Modal */}
+      <Modal
+        visible={showOptionsModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowOptionsModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowOptionsModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.optionButton}
+              onPress={handleDelete}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF4444" />
+              <Text style={styles.deleteText}>Delete Status</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.optionButton}
+              onPress={() => setShowOptionsModal(false)}
+            >
+              <Ionicons name="close-outline" size={20} color="#666" />
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Viewers Modal */}
+      <Modal
+        visible={showViewersModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowViewersModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.listModalContent}>
+            <View style={styles.listModalHeader}>
+              <Text style={styles.listModalTitle}>Viewers</Text>
+              <TouchableOpacity onPress={() => setShowViewersModal(false)}>
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.listContainer}>
+              {viewers.length === 0 ? (
+                <Text style={styles.emptyListText}>No viewers yet</Text>
+              ) : (
+                viewers.map((viewer: any, index: number) => (
+                  <View key={index} style={styles.listItem}>
+                    <View style={styles.viewerInfo}>
+                      {viewer.user_id?.profile_photo_url ? (
+                        <Image 
+                          source={{ uri: viewer.user_id.profile_photo_url }} 
+                          style={styles.viewerAvatar}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View style={[styles.viewerAvatar, styles.viewerAvatarPlaceholder]}>
+                          <Text style={styles.viewerAvatarText}>
+                            {viewer.user_id?.first_name?.[0]}{viewer.user_id?.last_name?.[0]}
+                          </Text>
+                        </View>
+                      )}
+                      <Text style={styles.listItemName}>
+                        {viewer.user_id?.first_name} {viewer.user_id?.last_name}
+                      </Text>
+                    </View>
+                    <Text style={styles.listItemTime}>
+                      {formatTimeAgo(viewer.viewed_at)}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Likes Modal */}
+      <Modal
+        visible={showLikesModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowLikesModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.listModalContent}>
+            <View style={styles.listModalHeader}>
+              <Text style={styles.listModalTitle}>Likes</Text>
+              <TouchableOpacity onPress={() => setShowLikesModal(false)}>
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.listContainer}>
+              {likers.map((like, index) => (
+                <View key={index} style={styles.listItem}>
+                  <Text style={styles.listItemName}>
+                    {like.user_id?.first_name} {like.user_id?.last_name}
+                  </Text>
+                  <Text style={styles.listItemTime}>
+                    {formatTimeAgo(like.created_at)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -370,11 +665,29 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  gradientBackground: {
+    borderRadius: 16,
+    padding: 8, // Add padding around the image
+    minHeight: 300, // Ensure minimum height for the gradient
+  },
+  imageWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle overlay
   },
   statusImage: {
     borderRadius: 12,
+    backgroundColor: 'transparent', // Let gradient show through
   },
   stats: {
     flexDirection: 'row',
@@ -456,6 +769,132 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    width: '80%',
+    maxWidth: 300,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginVertical: 4,
+  },
+  deleteText: {
+    fontSize: 16,
+    color: '#FF4444',
+    marginLeft: 12,
+    fontWeight: '500',
+  },
+  cancelText: {
+    fontSize: 16,
+    color: '#666',
+    marginLeft: 12,
+    fontWeight: '500',
+  },
+  listModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    width: '100%',
+    marginTop: 'auto',
+  },
+  listModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  listModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  listContainer: {
+    padding: 20,
+    maxHeight: 400,
+  },
+  listItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  listItemName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000',
+  },
+  listItemTime: {
+    fontSize: 12,
+    color: '#666',
+  },
+  emptyListText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 16,
+    marginTop: 20,
+  },
+  viewerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  viewerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 12,
+  },
+  viewerAvatarPlaceholder: {
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  imageLoadingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  imageErrorOverlay: {
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+  },
+  imageUrlText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });
 

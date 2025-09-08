@@ -5,6 +5,7 @@ import { LogBox } from 'react-native';
 
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { AlertProvider } from './src/context/AlertContext';
 import { NotificationService } from './src/services/NotificationService';
 import { pushNotificationService } from './src/services/notifications/PushNotifications';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
@@ -75,7 +76,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AppContent />
+        <AlertProvider>
+          <AppContent />
+        </AlertProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

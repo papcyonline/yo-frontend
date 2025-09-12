@@ -13,12 +13,27 @@ const getApiBaseUrl = () => {
   }
 };
 
+// Socket Configuration - must match backend server
+const getSocketUrl = () => {
+  if (__DEV__) {
+    // Extract the base URL without /api and use the same port as backend
+    const baseUrl = getApiBaseUrl().replace('/api', '');
+    return process.env.EXPO_PUBLIC_SOCKET_URL || baseUrl;
+  } else {
+    return process.env.EXPO_PUBLIC_PRODUCTION_SOCKET_URL || 'https://api.yofamapp.com';
+  }
+};
+
 export const API_CONFIG = {
   BASE_URL: getApiBaseUrl(),
+  SOCKET_URL: getSocketUrl(),
   TIMEOUT: parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT || '30000', 10),
   RETRY_ATTEMPTS: parseInt(process.env.EXPO_PUBLIC_API_RETRY_ATTEMPTS || '3', 10),
   ENVIRONMENT: process.env.EXPO_PUBLIC_ENVIRONMENT || (__DEV__ ? 'development' : 'production'),
 };
+
+// Debug log to verify API URL
+console.log('🌐 API_CONFIG.BASE_URL:', API_CONFIG.BASE_URL);
 
 export const API_ENDPOINTS = {
   // Auth endpoints

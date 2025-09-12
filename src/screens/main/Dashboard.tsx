@@ -1068,6 +1068,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
 
   return (
     <View style={dynamicStyles.container}>
+      {/* Header */}
       <DashboardHeader
         user={user}
         navigation={navigation}
@@ -1077,12 +1078,17 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
         onFriendRequestsPress={handleFriendRequestsPress}
       />
 
+      {/* Status Section - Right below header */}
+      <UpdatesSection navigation={navigation} />
+
+      {/* Tabs */}
       <DashboardTabs
         tabs={tabsData}
         activeTab={activeTab}
         onTabPress={handleTabPress}
       />
 
+      {/* Main Content */}
       {activeTab === 'socials' ? (
         <View style={dynamicStyles.content}>
           {renderTabContent()}
@@ -1101,15 +1107,13 @@ const Dashboard: React.FC<DashboardProps> = ({ navigation, route }) => {
             />
           }
         >
-          {/* Updates Section - Shows under header */}
-          <UpdatesSection navigation={navigation} />
-          
-          {/* Main Tab Content */}
+          {/* Main Tab Content - Matches */}
           {renderTabContent()}
           <View style={styles.bottomSpacing} />
         </ScrollView>
       )}
 
+      {/* Bottom Navigation */}
       <BottomNavigation
         activeTab={activeBottomTab}
         onTabPress={handleBottomTabPress}
@@ -1127,7 +1131,7 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingTop: 8,
     paddingBottom: 12,
-    paddingHorizontal: 8, // Much reduced from 20
+    paddingHorizontal: 0, // Remove padding to control alignment per section
     position: 'relative',
   },
   
@@ -1135,6 +1139,7 @@ const styles = StyleSheet.create({
   completeProfileCard: {
     borderRadius: 16,
     marginBottom: 24,
+    marginHorizontal: 12, // Match other elements padding
     overflow: 'hidden',
     elevation: 8,
     shadowColor: '#fcd3aa',
@@ -1227,6 +1232,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 20,
+    paddingHorizontal: 12, // Match listItemContent padding
   },
   viewAllButton: {
     flexDirection: 'row',
@@ -1616,6 +1622,7 @@ const styles = StyleSheet.create({
     height: 2, // Increased from 1 to 2
     marginHorizontal: 12,
     marginLeft: 76, // Align with text content (12 + 48 + 16)
+    marginRight: 12, // Ensure consistent right margin
     marginVertical: 2, // Added vertical margin for better spacing
   },
   

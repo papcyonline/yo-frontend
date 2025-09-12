@@ -178,3 +178,66 @@ export interface AppSettings {
     allowFacialRecognition: boolean;
   };
 }
+
+// Status/Stories related types
+export interface StatusStyle {
+  background_color?: string;
+  font_size?: number;
+  text_color?: string;
+  font_family?: string;
+  text_alignment?: 'left' | 'center' | 'right';
+}
+
+export interface StatusContent {
+  text?: string;
+  type: 'text' | 'image' | 'text_with_image' | 'audio' | 'text_with_audio' | 'image_audio' | 'text_with_image_audio';
+  style?: StatusStyle;
+}
+
+export interface StatusMedia {
+  image_url?: string;
+  thumbnail_url?: string;
+  image_width?: number;
+  image_height?: number;
+  audio_url?: string;
+  audio_duration?: number;
+}
+
+export interface StatusEngagement {
+  likes: Array<{ user_id: string; created_at: string }>;
+  comments: Array<{
+    user_id: { 
+      _id: string; 
+      first_name: string; 
+      last_name: string; 
+      profile_photo_url?: string; 
+    };
+    comment: string;
+    created_at: string;
+  }>;
+  views: number;
+  shares: number;
+}
+
+export interface Status {
+  _id: string;
+  user_id: {
+    _id: string;
+    first_name: string;
+    last_name: string;
+    profile_photo_url?: string;
+  };
+  content: StatusContent;
+  media?: StatusMedia;
+  engagement: StatusEngagement;
+  visibility: 'friends' | 'family' | 'public' | 'private';
+  location?: {
+    name?: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  created_at: string;
+  updated_at: string;
+}

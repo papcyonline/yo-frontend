@@ -392,25 +392,20 @@ const ChatsPage: React.FC<ChatsPageProps> = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Quick Stats Bar */}
-      <View style={styles.modernStatsBar}>
-        <View style={styles.modernStatItem}>
-          <Text style={styles.modernStatNumber}>{recentChats.length}</Text>
-          <Text style={styles.modernStatLabel}>Total</Text>
+      {/* Compact Stats Row */}
+      <View style={styles.compactStatsRow}>
+        <View style={styles.compactStatChip}>
+          <Text style={styles.compactStatText}>{recentChats.length} Total</Text>
         </View>
-        <View style={styles.modernStatDivider} />
-        <View style={styles.modernStatItem}>
-          <Text style={styles.modernStatNumber}>
-            {recentChats.reduce((sum, chat) => sum + chat.unreadCount, 0)}
+        <View style={styles.compactStatChip}>
+          <Text style={styles.compactStatText}>
+            {recentChats.reduce((sum, chat) => sum + chat.unreadCount, 0)} Unread
           </Text>
-          <Text style={styles.modernStatLabel}>Unread</Text>
         </View>
-        <View style={styles.modernStatDivider} />
-        <View style={styles.modernStatItem}>
-          <Text style={styles.modernStatNumber}>
-            {recentChats.filter(chat => chat.user.isOnline).length}
+        <View style={styles.compactStatChip}>
+          <Text style={styles.compactStatText}>
+            {recentChats.filter(chat => chat.user.isOnline).length} Online
           </Text>
-          <Text style={styles.modernStatLabel}>Online</Text>
         </View>
       </View>
 
@@ -531,43 +526,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(252, 211, 170, 0.08)',
   },
   
-  // Modern Stats Bar
-  modernStatsBar: {
+  // Compact Stats Row
+  compactStatsRow: {
     flexDirection: 'row',
     marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(252, 211, 170, 0.06)',
+    marginTop: 8,
+    marginBottom: 6,
+    justifyContent: 'space-between',
+    gap: 8,
   },
   
-  modernStatItem: {
-    alignItems: 'center',
+  compactStatChip: {
     flex: 1,
+    backgroundColor: 'rgba(252, 211, 170, 0.08)',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
   },
   
-  modernStatNumber: {
-    fontSize: 20,
-    fontFamily: getSystemFont('bold'),
+  compactStatText: {
+    fontSize: 12,
+    fontFamily: getSystemFont('semiBold'),
     color: '#fcd3aa',
-    marginBottom: 2,
-  },
-  
-  modernStatLabel: {
-    fontSize: 11,
-    fontFamily: getSystemFont('medium'),
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-  },
-  
-  modernStatDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(252, 211, 170, 0.12)',
-    marginHorizontal: 12,
   },
   
   // Content

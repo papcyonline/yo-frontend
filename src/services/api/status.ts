@@ -9,6 +9,9 @@ interface CreateStatusData {
   longitude?: number;
   textBackgroundColor?: string;
   textFontSize?: number;
+  textColor?: string;
+  textFontFamily?: string;
+  textAlignment?: string;
   image?: {
     uri: string;
     name: string;
@@ -27,6 +30,13 @@ interface Status {
   content: {
     text?: string;
     type: 'text' | 'image' | 'text_with_image';
+    style?: {
+      background_color?: string;
+      font_size?: number;
+      text_color?: string;
+      font_family?: string;
+      text_alignment?: string;
+    };
   };
   media?: {
     image_url?: string;
@@ -91,6 +101,9 @@ export class StatusAPI {
     if (data.longitude) formData.append('longitude', data.longitude.toString());
     if (data.textBackgroundColor) formData.append('textBackgroundColor', data.textBackgroundColor);
     if (data.textFontSize) formData.append('textFontSize', data.textFontSize.toString());
+    if (data.textColor) formData.append('textColor', data.textColor);
+    if (data.textFontFamily) formData.append('textFontFamily', data.textFontFamily);
+    if (data.textAlignment) formData.append('textAlignment', data.textAlignment);
 
     if (data.image) {
       console.log('📝 [StatusAPI] Adding image to formData:', data.image);

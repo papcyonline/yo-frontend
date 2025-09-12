@@ -26,6 +26,7 @@ interface EditPersonModalProps {
   onClose: () => void;
   onSave: () => void;
   onPersonChange?: (person: Person | null) => void;
+  onDelete?: () => void;
 }
 
 export const EditPersonModal: React.FC<EditPersonModalProps> = ({
@@ -34,6 +35,7 @@ export const EditPersonModal: React.FC<EditPersonModalProps> = ({
   onClose,
   onSave,
   onPersonChange,
+  onDelete,
 }) => {
   const [editedPerson, setEditedPerson] = useState<Person | null>(person);
 
@@ -136,6 +138,26 @@ export const EditPersonModal: React.FC<EditPersonModalProps> = ({
     const currentPhotos = editedPerson.photos || [];
     const updatedPhotos = currentPhotos.filter((_, i) => i !== index);
     updateField('photos', updatedPhotos);
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Family Member',
+      `Are you sure you want to delete ${editedPerson.firstName} ${editedPerson.lastName}? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            if (onDelete) {
+              onDelete();
+              onClose();
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -359,6 +381,20 @@ export const EditPersonModal: React.FC<EditPersonModalProps> = ({
             </ScrollView>
           </View>
 
+          {/* Delete Member Section */}
+          {onDelete && !editedPerson.isCurrentUser && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Delete Member</Text>
+              <Text style={styles.warningText}>
+                This will permanently remove this family member from the tree. This action cannot be undone.
+              </Text>
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                <Ionicons name="trash" size={20} color="#ffffff" />
+                <Text style={styles.deleteButtonText}>Delete Family Member</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </View>
@@ -569,5 +605,27 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  warningText: {
+    fontSize: 14,
+    fontFamily: getSystemFont('regular'),
+    color: COLORS.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dc2626',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontFamily: getSystemFont('semiBold'),
+    color: '#ffffff',
   },
 });

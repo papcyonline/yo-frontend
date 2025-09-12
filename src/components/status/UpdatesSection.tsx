@@ -55,6 +55,8 @@ const UpdatesSection: React.FC<UpdatesSectionProps> = ({ navigation }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Update | null>(null);
+  const [userStatuses, setUserStatuses] = useState<Update[]>([]);
+  const [currentStatusIndex, setCurrentStatusIndex] = useState(0);
   
   // Get current user from auth store
   const { user } = useAuthStore();
@@ -121,9 +123,43 @@ const UpdatesSection: React.FC<UpdatesSectionProps> = ({ navigation }) => {
     setShowCreateModal(false);
   };
 
-  const handleStatusPress = (status: Update) => {
+  const fetchUserStatuses = async (userId: string): Promise<Update[]> => {
+    try {
+      // If it's the current user, return myUpdates
+      if (userId === currentUserId) {
+        return myUpdates;
+      }
+      
+      // For other users, fetch their statuses from the API
+      // Note: This would need a new API endpoint to get statuses by user ID
+      // For now, filter from existing updates
+      const userUpdates = updates.filter(update => update.user_id._id === userId);
+      return userUpdates;
+    } catch (error) {
+      console.error('Error fetching user statuses:', error);
+      return []; // Fallback to empty array
+    }
+  };
+
+  const handleStatusPress = async (status: Update) => {
     setSelectedStatus(status);
+    
+    // Fetch all statuses from the same user
+    const statusesFromUser = await fetchUserStatuses(status.user_id._id);
+    setUserStatuses(statusesFromUser);
+    
+    // Find the index of the selected status
+    const statusIndex = statusesFromUser.findIndex(s => s._id === status._id);
+    setCurrentStatusIndex(Math.max(0, statusIndex));
+    
     setShowViewModal(true);
+  };
+
+  const handleStatusChange = (newIndex: number) => {
+    if (newIndex >= 0 && newIndex < userStatuses.length) {
+      setCurrentStatusIndex(newIndex);
+      setSelectedStatus(userStatuses[newIndex]);
+    }
   };
 
   const handleDeleteUpdate = async (updateId: string) => {
@@ -255,12 +291,17 @@ const UpdatesSection: React.FC<UpdatesSectionProps> = ({ navigation }) => {
         <StatusViewModal
           visible={showViewModal}
           status={selectedStatus}
+          userStatuses={userStatuses}
+          currentStatusIndex={currentStatusIndex}
           onClose={() => {
             setShowViewModal(false);
             setSelectedStatus(null);
+            setUserStatuses([]);
+            setCurrentStatusIndex(0);
           }}
           currentUserId={currentUserId}
           onDelete={handleDeleteUpdate}
+          onStatusChange={handleStatusChange}
         />
       )}
     </View>

@@ -35,27 +35,35 @@ interface CreateStatusModalProps {
 type ViewType = 'photos' | 'albums';
 type ActionType = 'text' | null;
 
-// Predefined text background colors
+// Background colors
 const TEXT_BACKGROUNDS = [
-  { id: 'gradient1', colors: ['#0091ad', '#04a7c7'], name: 'Ocean Blue' },
-  { id: 'gradient2', colors: ['#fcd3aa', '#0091ad'], name: 'Sunset' },
-  { id: 'gradient3', colors: ['#FF6B6B', '#4ECDC4'], name: 'Coral' },
-  { id: 'gradient4', colors: ['#A8E6CF', '#DCEDC1'], name: 'Green' },
-  { id: 'gradient5', colors: ['#FFD93D', '#6BCF7F'], name: 'Sunny' },
-  { id: 'gradient6', colors: ['#667eea', '#764ba2'], name: 'Purple' },
-  { id: 'gradient7', colors: ['#f093fb', '#f5576c'], name: 'Pink' },
-  { id: 'solid1', colors: ['#000000', '#000000'], name: 'Black' },
-  { id: 'solid2', colors: ['#FFFFFF', '#FFFFFF'], name: 'White' },
-  { id: 'solid3', colors: ['#0091ad', '#0091ad'], name: 'Blue' },
+  { id: 'blue', colors: ['#04a7c7', '#04a7c7'], name: 'Blue' },
+  { id: 'black', colors: ['#000000', '#000000'], name: 'Black' },
+  { id: 'white', colors: ['#FFFFFF', '#FFFFFF'], name: 'White' },
+  { id: 'gray', colors: ['#424242', '#424242'], name: 'Gray' },
+  { id: 'green', colors: ['#4CAF50', '#4CAF50'], name: 'Green' },
+  { id: 'red', colors: ['#F44336', '#F44336'], name: 'Red' },
+  { id: 'purple', colors: ['#9C27B0', '#9C27B0'], name: 'Purple' },
+  { id: 'orange', colors: ['#FF9800', '#FF9800'], name: 'Orange' },
 ];
+
+// Text colors
+const TEXT_COLORS = [
+  { id: 'white', color: '#FFFFFF', name: 'White' },
+  { id: 'black', color: '#000000', name: 'Black' },
+  { id: 'blue', color: '#04a7c7', name: 'Blue' },
+  { id: 'red', color: '#F44336', name: 'Red' },
+  { id: 'green', color: '#4CAF50', name: 'Green' },
+  { id: 'yellow', color: '#FFEB3B', name: 'Yellow' },
+];
+
+// Font sizes
+const FONT_SIZES = [16, 18, 20, 24, 28, 32, 36, 40];
 
 const FONT_FAMILIES = [
   'System',
   'Georgia',
-  'Times New Roman', 
-  'Courier New',
-  'Helvetica',
-  'Arial Black'
+  'Helvetica'
 ];
 
 const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
@@ -87,6 +95,11 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
   const [selectedFontFamily, setSelectedFontFamily] = useState(FONT_FAMILIES[0]);
   const [selectedFontSize, setSelectedFontSize] = useState(20);
   const [textAlignment, setTextAlignment] = useState<'left' | 'center' | 'right'>('center');
+  
+  // Dropdown states
+  const [showBackgroundDropdown, setShowBackgroundDropdown] = useState(false);
+  const [showTextColorDropdown, setShowTextColorDropdown] = useState(false);
+  const [showFontSizeDropdown, setShowFontSizeDropdown] = useState(false);
   
   const { showAlert, success, error } = useAlert();
 
@@ -248,25 +261,91 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
 
       if (hasText) {
         statusData.text = text.trim();
-        statusData.textBackgroundColor = selectedBackground.id;
+        statusData.textBackgroundColor = selectedBackground.colors[0]; // Use the actual color, not ID
         statusData.textFontSize = selectedFontSize;
         statusData.textColor = selectedTextColor;
         statusData.textFontFamily = selectedFontFamily;
         statusData.textAlignment = textAlignment;
+        
+        // Debug log to see what's being sent
+        console.log('📤 [STATUS DATA] Sending:', {
+          text: statusData.text,
+          backgroundColor: statusData.textBackgroundColor,
+          textColor: statusData.textColor,
+          fontSize: statusData.textFontSize
+        });
       }
 
       if (hasImages) {
-        // For now, send only the first selected image since backend supports single image
-        // TODO: Extend backend to support multiple images
-        const firstImage = selectedImages[0];
-        const fileName = firstImage.split('/').pop() || 'image.jpg';
-        const fileType = fileName.includes('.') ? `image/${fileName.split('.').pop()}` : 'image/jpeg';
+        // Download iCloud image if needed and get actual file info
+        const firstImageUri = selectedImages[0];
         
-        statusData.image = {
-          uri: firstImage,
-          name: fileName,
-          type: fileType
-        };
+        try {
+          // Use MediaLibrary to get the actual asset info for potential iCloud download
+          const assets = await MediaLibrary.getAssetsAsync({
+            first: 1,
+            mediaType: [MediaLibrary.MediaType.photo]
+          });
+          
+          // Find the matching asset by URI
+          let targetAsset = null;
+          const allAssets = await MediaLibrary.getAssetsAsync({
+            first: 10000,
+            mediaType: [MediaLibrary.MediaType.photo]
+          });
+          
+          targetAsset = allAssets.assets.find(asset => asset.uri === firstImageUri);
+          
+          if (targetAsset) {
+            // Get the asset info which should download iCloud images
+            const assetInfo = await MediaLibrary.getAssetInfoAsync(targetAsset);
+            const finalUri = assetInfo.localUri || assetInfo.uri || firstImageUri;
+            
+            const fileName = finalUri.split('/').pop() || 'image.jpg';
+            const fileType = fileName.toLowerCase().includes('.heic') || fileName.toLowerCase().includes('.heif') 
+              ? 'image/heic' 
+              : fileName.includes('.') 
+                ? `image/${fileName.split('.').pop()?.toLowerCase()}` 
+                : 'image/jpeg';
+            
+            console.log('📸 [IMAGE] Processing image:', {
+              originalUri: firstImageUri,
+              finalUri,
+              fileName,
+              fileType,
+              isICloud: firstImageUri.includes('PhotoData/Mutations')
+            });
+            
+            statusData.image = {
+              uri: finalUri,
+              name: fileName,
+              type: fileType
+            };
+          } else {
+            // Fallback to direct URI
+            const fileName = firstImageUri.split('/').pop() || 'image.jpg';
+            const fileType = fileName.toLowerCase().includes('.heic') || fileName.toLowerCase().includes('.heif') 
+              ? 'image/heic' 
+              : 'image/jpeg';
+            
+            statusData.image = {
+              uri: firstImageUri,
+              name: fileName,
+              type: fileType
+            };
+          }
+        } catch (imageError) {
+          console.error('📸 [ERROR] Image processing failed:', imageError);
+          // Fallback to original approach
+          const fileName = firstImageUri.split('/').pop() || 'image.jpg';
+          const fileType = fileName.includes('.') ? `image/${fileName.split('.').pop()}` : 'image/jpeg';
+          
+          statusData.image = {
+            uri: firstImageUri,
+            name: fileName,
+            type: fileType
+          };
+        }
       }
 
 
@@ -309,121 +388,136 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
 
 
   const renderTextEditor = () => (
-    <ScrollView style={styles.textEditor} showsVerticalScrollIndicator={false}>
-      {/* Text Preview */}
-      <View style={styles.textPreviewContainer}>
-        <LinearGradient
-          colors={selectedBackground.colors}
-          style={styles.textPreview}
+    <View style={styles.textEditor}>
+      {/* Top Toolbar */}
+      <View style={styles.topToolbar}>
+        {/* Background Color Dropdown */}
+        <View style={styles.dropdownContainer}>
+          <TouchableOpacity 
+            style={styles.dropdownButton}
+            onPress={() => setShowBackgroundDropdown(!showBackgroundDropdown)}
+          >
+            <View style={[styles.colorPreview, { backgroundColor: selectedBackground.colors[0] }]} />
+            <Ionicons name="chevron-down" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          {showBackgroundDropdown && (
+            <View style={styles.dropdown}>
+              {TEXT_BACKGROUNDS.map((bg) => (
+                <TouchableOpacity
+                  key={bg.id}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setSelectedBackground(bg);
+                    setShowBackgroundDropdown(false);
+                  }}
+                >
+                  <View style={[styles.colorPreview, { backgroundColor: bg.colors[0] }]} />
+                  <Text style={styles.dropdownText}>{bg.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Text Color Dropdown */}
+        <View style={styles.dropdownContainer}>
+          <TouchableOpacity 
+            style={styles.dropdownButton}
+            onPress={() => setShowTextColorDropdown(!showTextColorDropdown)}
+          >
+            <View style={[styles.colorPreview, { backgroundColor: selectedTextColor }]} />
+            <Text style={styles.dropdownButtonText}>Aa</Text>
+            <Ionicons name="chevron-down" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          {showTextColorDropdown && (
+            <View style={styles.dropdown}>
+              {TEXT_COLORS.map((textColor) => (
+                <TouchableOpacity
+                  key={textColor.id}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setSelectedTextColor(textColor.color);
+                    setShowTextColorDropdown(false);
+                  }}
+                >
+                  <View style={[styles.colorPreview, { backgroundColor: textColor.color }]} />
+                  <Text style={styles.dropdownText}>{textColor.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Font Size Dropdown */}
+        <View style={styles.dropdownContainer}>
+          <TouchableOpacity 
+            style={styles.dropdownButton}
+            onPress={() => setShowFontSizeDropdown(!showFontSizeDropdown)}
+          >
+            <Text style={styles.dropdownButtonText}>{selectedFontSize}</Text>
+            <Ionicons name="chevron-down" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          {showFontSizeDropdown && (
+            <View style={styles.dropdown}>
+              {FONT_SIZES.map((size) => (
+                <TouchableOpacity
+                  key={size}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setSelectedFontSize(size);
+                    setShowFontSizeDropdown(false);
+                  }}
+                >
+                  <Text style={styles.dropdownText}>{size}px</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Share Button */}
+        <TouchableOpacity 
+          style={[styles.shareButton, { opacity: text.trim() ? 1 : 0.5 }]}
+          onPress={handlePost}
+          disabled={isLoading || !text.trim()}
         >
-          <Text style={[
-            styles.textPreviewText, 
-            { 
-              color: selectedTextColor, 
-              fontSize: selectedFontSize,
-              fontFamily: Platform.OS === 'ios' ? selectedFontFamily : 'System',
-              textAlign: textAlignment 
-            }
-          ]}>
-            {text || 'Type your status...'}
-          </Text>
-        </LinearGradient>
-      </View>
-      
-      {/* Text Input */}
-      <TextInput
-        style={styles.textInput}
-        value={text}
-        onChangeText={setText}
-        placeholder="What's on your mind?"
-        placeholderTextColor="#999"
-        multiline
-        maxLength={500}
-      />
-      
-      {/* Background Colors */}
-      <View style={styles.controlSection}>
-        <Text style={styles.controlTitle}>Background</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.backgroundPicker}>
-          {TEXT_BACKGROUNDS.map((bg) => (
-            <TouchableOpacity
-              key={bg.id}
-              style={[styles.backgroundOption, selectedBackground.id === bg.id && styles.selectedBackground]}
-              onPress={() => setSelectedBackground(bg)}
-            >
-              <LinearGradient colors={bg.colors} style={styles.backgroundPreview} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.shareButtonText}>Share</Text>
+          )}
+        </TouchableOpacity>
       </View>
 
-      {/* Text Color */}
-      <View style={styles.controlSection}>
-        <Text style={styles.controlTitle}>Text Color</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.colorPicker}>
-          {[
-            '#FFFFFF', '#000000', '#0091ad', '#04a7c7', '#fcd3aa', 
-            '#FF6B6B', '#4ECDC4', '#FFD93D', '#A8E6CF', '#667eea'
-          ].map((color) => (
-            <TouchableOpacity
-              key={color}
-              style={[styles.colorOption, { backgroundColor: color }, selectedTextColor === color && styles.selectedColor]}
-              onPress={() => setSelectedTextColor(color)}
-            />
-          ))}
-        </ScrollView>
-      </View>
-      
-      {/* Font Controls */}
-      <View style={styles.controlSection}>
-        <Text style={styles.controlTitle}>Font & Size</Text>
-        <View style={styles.fontControls}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fontPicker}>
-            {FONT_FAMILIES.map((font) => (
-              <TouchableOpacity
-                key={font}
-                style={[styles.fontOption, selectedFontFamily === font && styles.selectedFont]}
-                onPress={() => setSelectedFontFamily(font)}
-              >
-                <Text style={[styles.fontOptionText, { fontFamily: Platform.OS === 'ios' ? font : 'System' }]}>
-                  {font}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-        
-        <View style={styles.fontSizeControls}>
-          <TouchableOpacity onPress={() => setSelectedFontSize(Math.max(12, selectedFontSize - 2))}>
-            <Ionicons name="remove-circle" size={24} color="#666" />
-          </TouchableOpacity>
-          <Text style={styles.fontSizeText}>{selectedFontSize}px</Text>
-          <TouchableOpacity onPress={() => setSelectedFontSize(Math.min(36, selectedFontSize + 2))}>
-            <Ionicons name="add-circle" size={24} color="#666" />
-          </TouchableOpacity>
+      {/* Text Input Area */}
+      <View style={styles.textInputContainer}>
+        <View
+          style={[styles.textPreview, { backgroundColor: selectedBackground.colors[0] }]}
+        >
+          <TextInput
+            style={[
+              styles.textPreviewInput,
+              { 
+                color: selectedTextColor, 
+                fontSize: selectedFontSize,
+                fontFamily: Platform.OS === 'ios' ? selectedFontFamily : 'System',
+                textAlign: textAlignment 
+              }
+            ]}
+            value={text}
+            onChangeText={setText}
+            placeholder="Type your status..."
+            placeholderTextColor={selectedTextColor === '#FFFFFF' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
+            multiline
+            maxLength={500}
+            autoFocus
+          />
         </View>
       </View>
-
-      {/* Text Alignment */}
-      <View style={styles.controlSection}>
-        <Text style={styles.controlTitle}>Alignment</Text>
-        <View style={styles.alignmentControls}>
-          {(['left', 'center', 'right'] as const).map((align) => (
-            <TouchableOpacity
-              key={align}
-              style={[styles.alignmentButton, textAlignment === align && styles.selectedAlignment]}
-              onPress={() => setTextAlignment(align)}
-            >
-              <Ionicons 
-                name={`text-${align === 'left' ? 'left' : align === 'center' ? 'center' : 'right'}-outline` as any}
-                size={20} 
-                color={textAlignment === align ? '#0091ad' : '#666'} 
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    </ScrollView>
+    </View>
   );
 
 
@@ -511,20 +605,17 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
 
     return (
       <TouchableOpacity 
-        style={[styles.postButton, !canPost && styles.postButtonDisabled]}
+        style={[styles.postButton, { backgroundColor: canPost ? '#04a7c7' : '#333333' }]}
         onPress={handlePost}
         disabled={isLoading || !canPost}
       >
-        <LinearGradient
-          colors={canPost ? ['#0091ad', '#04a7c7'] : ['#666', '#888']}
-          style={styles.postButtonGradient}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.postButtonText}>Post Status</Text>
-          )}
-        </LinearGradient>
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <Text style={[styles.postButtonText, { opacity: canPost ? 1 : 0.5 }]}>
+            Share
+          </Text>
+        )}
       </TouchableOpacity>
     );
   };
@@ -537,92 +628,92 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* Compact Header */}
-        <View style={styles.compactHeader}>
-          <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-            <Ionicons name="close" size={24} color="#FFFFFF" />
+        {/* Clean Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
           
-          {/* Navigation Tabs */}
-          <View style={styles.centerNavigation}>
+          <Text style={styles.headerTitle}>Create Status</Text>
+          
+          <TouchableOpacity 
+            style={styles.textToggle}
+            onPress={() => setSelectedAction(selectedAction === 'text' ? null : 'text')}
+          >
+            <Ionicons 
+              name="text" 
+              size={24} 
+              color={selectedAction === 'text' ? '#04a7c7' : '#FFFFFF'} 
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Simple Navigation - only show when not in text mode */}
+        {selectedAction !== 'text' && (
+          <View style={styles.simpleNav}>
             {selectedAlbum ? (
               <TouchableOpacity 
                 onPress={() => {
                   setSelectedAlbum(null);
                   setCurrentView('albums');
                 }}
-                style={styles.backButton}
+                style={styles.backNav}
               >
                 <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-                <Text style={styles.backButtonText}>Albums</Text>
+                <Text style={styles.backNavText}>Back to Albums</Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.navTabs}>
+              <View style={styles.navOptions}>
                 <TouchableOpacity 
-                  style={[styles.navTab, currentView === 'photos' && styles.activeNavTab]}
+                  style={[styles.navOption, currentView === 'photos' && styles.activeNavOption]}
                   onPress={() => {
                     setCurrentView('photos');
                     setSelectedAlbum(null);
                     loadMedia();
                   }}
                 >
-                  <Text style={[styles.navTabText, currentView === 'photos' && styles.activeNavTabText]}>
-                    Photos
+                  <Text style={[styles.navOptionText, currentView === 'photos' && styles.activeNavOptionText]}>
+                    Recent
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.navTab, currentView === 'albums' && styles.activeNavTab]}
+                  style={[styles.navOption, currentView === 'albums' && styles.activeNavOption]}
                   onPress={() => {
                     setCurrentView('albums');
                     setSelectedAlbum(null);
                     loadMedia();
                   }}
                 >
-                  <Text style={[styles.navTabText, currentView === 'albums' && styles.activeNavTabText]}>
+                  <Text style={[styles.navOptionText, currentView === 'albums' && styles.activeNavOptionText]}>
                     Albums
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
-
-          {/* Action Buttons */}
-          <View style={styles.headerActions}>
-            <TouchableOpacity 
-              style={[styles.compactActionButton, selectedAction === 'text' && styles.activeCompactAction]}
-              onPress={() => setSelectedAction(selectedAction === 'text' ? null : 'text')}
-            >
-              <Ionicons name="text" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.compactActionButton}
-              onPress={takePhoto}
-            >
-              <Ionicons name="camera" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        )}
         
         {/* Content Area */}
         <View style={styles.content}>
           {renderContent()}
         </View>
         
-        {/* Post Button */}
-        <View style={styles.bottomSection}>
-          {selectedImages.length > 0 && (
-            <View style={styles.selectionSummary}>
-              <Text style={styles.selectionText}>
-                {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} selected
-              </Text>
-              <TouchableOpacity onPress={() => setSelectedImages([])}>
-                <Text style={styles.clearText}>Clear</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {renderPostButton()}
-        </View>
+        {/* Post Button - only for non-text content */}
+        {selectedAction !== 'text' && (
+          <View style={styles.bottomSection}>
+            {selectedImages.length > 0 && (
+              <View style={styles.selectionSummary}>
+                <Text style={styles.selectionText}>
+                  {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} selected
+                </Text>
+                <TouchableOpacity onPress={() => setSelectedImages([])}>
+                  <Text style={styles.clearText}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {renderPostButton()}
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -633,23 +724,70 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  compactHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: '#1C1C1E',
   },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  closeButton: {
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  textToggle: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  simpleNav: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1C1C1E',
+  },
+  navOptions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 40,
+  },
+  navOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  activeNavOption: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#04a7c7',
+  },
+  navOptionText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  activeNavOptionText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  backNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backNavText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
   centerNavigation: {
     flex: 1,
@@ -769,22 +907,91 @@ const styles = StyleSheet.create({
   // Text Editor Styles
   textEditor: {
     flex: 1,
+  },
+  topToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#1C1C1E',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E',
+  },
+  dropdownContainer: {
+    position: 'relative',
+    zIndex: 1000,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 8,
+    gap: 6,
+  },
+  dropdownButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  colorPreview: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#666',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    minWidth: 120,
+    maxHeight: 200,
+    zIndex: 2000,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  dropdownText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  shareButton: {
+    backgroundColor: '#04a7c7',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  shareButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  textInputContainer: {
+    flex: 1,
     padding: 20,
   },
-  textPreviewContainer: {
-    marginBottom: 20,
-  },
   textPreview: {
-    height: 250,
-    borderRadius: 20,
+    flex: 1,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    minHeight: 300,
   },
-  textPreviewText: {
+  textPreviewInput: {
+    width: '100%',
     textAlign: 'center',
-    fontWeight: '600',
-    maxWidth: '90%',
+    fontWeight: '500',
+    minHeight: 200,
+    textAlignVertical: 'center',
   },
   textInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -888,24 +1095,24 @@ const styles = StyleSheet.create({
   // Albums & Gallery Styles
   albumsContainer: {
     flex: 1,
-    padding: 15,
+    padding: 20,
   },
   albumItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#1C1C1E',
     borderRadius: 12,
-    padding: 15,
-    marginBottom: 12,
+    padding: 16,
+    marginBottom: 8,
   },
   albumPreview: {
-    gap: 5,
+    gap: 4,
   },
   albumTitle: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   albumCount: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#8E8E93',
     fontSize: 14,
   },
   galleryGrid: {
@@ -970,15 +1177,9 @@ const styles = StyleSheet.create({
   },
   // Post Button Styles
   postButton: {
-    borderRadius: 25,
-    overflow: 'hidden',
-  },
-  postButtonDisabled: {
-    opacity: 0.5,
-  },
-  postButtonGradient: {
     paddingHorizontal: 30,
-    paddingVertical: 15,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
   postButtonText: {

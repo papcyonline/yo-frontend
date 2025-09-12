@@ -54,6 +54,9 @@ import ModernProfileScreen from '../screens/main/profile/ModernProfileScreen';
 import MatchDetail from '../screens/main/MatchDetail';
 import CommunityDetailScreen from '../components/communities/CommunityDetailScreen';
 import CommunitiesScreen from '../components/communities/CommunitiesScreen';
+import CommunityInfoScreen from '../components/communities/CommunityInfoScreen';
+import CommunityMembersScreen from '../components/communities/CommunityMembersScreen';
+import AddMembersScreen from '../components/communities/AddMembersScreen';
 import WorkflowGenealogyScreen from '../components/geneology/WorkflowGenealogyScreen';
 
 // Chat Screens - Original Design
@@ -364,6 +367,32 @@ const AppNavigator: React.FC = () => {
         <Stack.Screen
           name="CommunityDetail"
           component={CommunityDetailScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right'
+          }}
+        />
+
+        <Stack.Screen
+          name="CommunityInfo"
+          component={CommunityInfoScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right'
+          }}
+        />
+
+        <Stack.Screen
+          name="CommunityMembers"
+          component={CommunityMembersScreen}
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right'
+          }}
+        />
+        <Stack.Screen
+          name="AddMembers"
+          component={AddMembersScreen}
           options={{
             headerShown: false,
             animation: 'slide_from_right'

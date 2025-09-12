@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_CONFIG } from '../constants/api';
 
 interface StatusSocketEvents {
   onNewStatus?: (status: any) => void;
@@ -25,8 +26,9 @@ export const useStatusSocket = (events: StatusSocketEvents) => {
           return;
         }
 
-        // Initialize socket connection
-        const socket = io('http://localhost:9002', {
+        // Initialize socket connection using dynamic URL
+        console.log('🔌 Connecting to socket at:', API_CONFIG.SOCKET_URL);
+        const socket = io(API_CONFIG.SOCKET_URL, {
           auth: {
             token: token
           },

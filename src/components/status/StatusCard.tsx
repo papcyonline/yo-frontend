@@ -16,6 +16,7 @@ import { COLORS } from '../../constants/colors';
 import { StatusAPI } from '../../services/api/status';
 
 interface StatusCardProps {
+  onStatusPress?: (status: any) => void;
   status: {
     _id: string;
     user_id: {
@@ -27,6 +28,13 @@ interface StatusCardProps {
     content: {
       text?: string;
       type: 'text' | 'image' | 'text_with_image';
+      style?: {
+        background_color?: string;
+        font_size?: number;
+        text_color?: string;
+        font_family?: string;
+        text_alignment?: string;
+      };
     };
     media?: {
       image_url?: string;
@@ -78,7 +86,8 @@ const StatusCard: React.FC<StatusCardProps> = ({
   onComment,
   onShare,
   onUserPress,
-  onDelete
+  onDelete,
+  onStatusPress
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -242,6 +251,28 @@ const StatusCard: React.FC<StatusCardProps> = ({
     };
   };
 
+  // Debug logging for content type
+  console.log('🔍 [StatusCard DEBUG] Content type check:', {
+    statusId: status._id.substring(0, 8),
+    contentType: status.content.type,
+    hasText: !!status.content.text,
+    textLength: status.content.text?.length,
+    text: status.content.text,
+    styleData: status.content.style
+  });
+
+  // Additional debug for rendering path
+  if (status.content.text && status.content.type === 'text') {
+    console.log('🎨 [StatusCard] Will render TEXT ONLY with full screen background');
+  } else if (status.content.text && status.content.type === 'text_with_image') {
+    console.log('🖼️ [StatusCard] Will render TEXT WITH IMAGE');
+  } else {
+    console.log('❓ [StatusCard] Unknown rendering path:', { 
+      hasText: !!status.content.text, 
+      type: status.content.type 
+    });
+  }
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -289,10 +320,52 @@ const StatusCard: React.FC<StatusCardProps> = ({
       </View>
 
       {/* Content */}
-      <View style={styles.content}>
+      <TouchableOpacity 
+        style={[
+          styles.content,
+          status.content.type === 'text' && styles.textOnlyContent
+        ]}
+        activeOpacity={0.9}
+        onPress={() => onStatusPress?.(status)}
+      >
         {/* Text Content */}
-        {status.content.text && (
-          <Text style={styles.statusText}>{status.content.text}</Text>
+        {status.content.text && status.content.type === 'text' && (
+          <View style={[
+            styles.textOnlyStatusContainer,
+            { 
+              backgroundColor: status.content.style?.background_color || '#04a7c7',
+            }
+          ]}>
+            <Text style={[
+              styles.textOnlyStatusText,
+              {
+                color: status.content.style?.text_color || '#FFFFFF',
+                fontSize: status.content.style?.font_size || 24,
+                fontFamily: status.content.style?.font_family || 'System',
+                textAlign: status.content.style?.text_alignment || 'center'
+              }
+            ]}>
+              {status.content.text}
+            </Text>
+          </View>
+        )}
+
+        {/* Text with Image Content */}
+        {status.content.text && status.content.type === 'text_with_image' && (
+          <View style={styles.textWithImageContainer}>
+            <Text style={[
+              styles.statusText,
+              {
+                color: status.content.style?.text_color || '#000000',
+                fontSize: status.content.style?.font_size || 16,
+                fontFamily: status.content.style?.font_family || 'System',
+                textAlign: status.content.style?.text_alignment || 'left',
+                marginBottom: 12
+              }
+            ]}>
+              {status.content.text}
+            </Text>
+          </View>
         )}
 
         {/* Image Content */}
@@ -348,7 +421,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
             )}
           </View>
         )}
-      </View>
+      </TouchableOpacity>
 
       {/* Engagement Stats */}
       {(likeCount > 0 || status.engagement.comments.length > 0) && (
@@ -657,11 +730,32 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
   },
+  textOnlyContent: {
+    paddingHorizontal: 0, // Remove padding for text-only statuses
+  },
   statusText: {
     fontSize: 16,
     color: '#000',
     lineHeight: 22,
     marginBottom: 12,
+  },
+  textOnlyStatusContainer: {
+    width: screenWidth, // Full screen width
+    marginLeft: -16, // Cancel out parent card padding (since content has paddingHorizontal: 0 for text-only)
+    paddingHorizontal: 32,
+    paddingVertical: 80,
+    minHeight: 350, // Minimum height for full-screen effect
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textOnlyStatusText: {
+    fontSize: 24,
+    fontWeight: '600',
+    lineHeight: 32,
+    textAlign: 'center',
+  },
+  textWithImageContainer: {
+    marginBottom: 8,
   },
   imageContainer: {
     marginTop: 8,

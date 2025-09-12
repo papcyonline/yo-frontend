@@ -75,8 +75,8 @@ class GenealogyService {
   private baseURL: string;
 
   constructor() {
-    // Use test server with genealogy endpoints - network IP for React Native  
-    this.baseURL = 'http://192.168.1.231:3020/api/genealogy';
+    // Use main server with genealogy endpoints - network IP for React Native  
+    this.baseURL = 'http://192.168.1.231:3018/api/genealogy';
   }
 
   private async getAuthHeaders(): Promise<HeadersInit> {
@@ -456,6 +456,52 @@ class GenealogyService {
     };
   }
 
+  // AI Matching & Discovery Methods
+  async discoverMatches(userData: {
+    firstName?: string;
+    lastName?: string;
+    dateOfBirth?: string;
+    placeOfBirth?: string;
+  }): Promise<any[]> {
+    const response = await this.makeRequest('/discover', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    return response.data;
+  }
+
+  async getMyMatches(): Promise<any[]> {
+    const response = await this.makeRequest('/my-matches');
+    return response.data;
+  }
+
+  async claimFamilyMember(memberId: string, relationship: string, evidence?: string): Promise<any> {
+    const response = await this.makeRequest(`/members/${memberId}/claim`, {
+      method: 'POST',
+      body: JSON.stringify({ relationship, evidence }),
+    });
+    return response.data;
+  }
+
+  async getClaims(memberId: string): Promise<any> {
+    const response = await this.makeRequest(`/members/${memberId}/claims`);
+    return response.data;
+  }
+
+  async requestCollaboration(treeId: string, message?: string, relationship?: string): Promise<void> {
+    await this.makeRequest(`/trees/${treeId}/collaborate`, {
+      method: 'POST',
+      body: JSON.stringify({ message, relationship }),
+    });
+  }
+
+  async runAIResearch(): Promise<any> {
+    const response = await this.makeRequest('/ai-research', {
+      method: 'POST',
+    });
+    return response.data;
+  }
+
   // Create a default family tree for a new user
   async createDefaultFamilyTree(userId: string, userName: string): Promise<FamilyTree> {
     const defaultTree = {
@@ -463,7 +509,7 @@ class GenealogyService {
       description: 'My family heritage and genealogy',
       isPublic: false,
       isSearchable: true,
-      allowCollaboration: false,
+      allowCollaboration: true, // Enable collaboration by default
       enableAIMatching: true,
     };
 

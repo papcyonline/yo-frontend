@@ -132,6 +132,32 @@ export const useFamilyTree = (user: any) => {
   };
 
   const convertToPersonFormat = (member: FamilyMember): Person => {
+    // Helper function to convert ObjectIds or refs to string IDs
+    const convertToStringArray = (refs: any[]): string[] => {
+      if (!Array.isArray(refs)) return [];
+      return refs.map(ref => {
+        if (typeof ref === 'string') return ref;
+        if (ref && typeof ref === 'object' && ref._id) return ref._id.toString();
+        if (ref && typeof ref === 'object' && ref.toString) return ref.toString();
+        return String(ref);
+      }).filter(id => id && id !== 'undefined');
+    };
+
+    const convertToString = (ref: any): string | undefined => {
+      if (!ref) return undefined;
+      if (typeof ref === 'string') return ref;
+      if (ref && typeof ref === 'object' && ref._id) return ref._id.toString();
+      if (ref && typeof ref === 'object' && ref.toString) return ref.toString();
+      return String(ref);
+    };
+
+    console.log(`🔄 Converting member ${member.name}:`, {
+      children: member.children,
+      parents: member.parents,
+      siblings: member.siblings,
+      spouse: member.spouse
+    });
+
     return {
       id: member._id || member.firstName,
       name: member.name,
@@ -147,10 +173,10 @@ export const useFamilyTree = (user: any) => {
       isAlive: member.isAlive,
       currentLocation: member.currentLocation,
       photo: member.photo,
-      children: member.children || [],
-      parents: member.parents || [],
-      siblings: member.siblings || [],
-      spouse: member.spouse,
+      children: convertToStringArray(member.children || []),
+      parents: convertToStringArray(member.parents || []),
+      siblings: convertToStringArray(member.siblings || []),
+      spouse: convertToString(member.spouse),
       generation: member.generation,
       bio: member.bio,
       profession: member.profession,

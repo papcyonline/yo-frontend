@@ -25,6 +25,7 @@ interface ComprehensivePersonModalProps {
   onClose: () => void;
   onEdit: (person: Person) => void;
   onAddChild: () => void;
+  onOpenDocuments?: (person: Person) => void;
 }
 
 export const ComprehensivePersonModal: React.FC<ComprehensivePersonModalProps> = ({
@@ -33,6 +34,7 @@ export const ComprehensivePersonModal: React.FC<ComprehensivePersonModalProps> =
   onClose,
   onEdit,
   onAddChild,
+  onOpenDocuments,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'family' | 'media'>('overview');
 
@@ -315,6 +317,16 @@ export const ComprehensivePersonModal: React.FC<ComprehensivePersonModalProps> =
               <Ionicons name="person-add-outline" size={20} color={COLORS.text} />
               <Text style={styles.actionButtonText}>Add Child</Text>
             </TouchableOpacity>
+
+            {onOpenDocuments && (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.documentsButton]}
+                onPress={() => onOpenDocuments(person)}
+              >
+                <Ionicons name="document-text-outline" size={20} color={COLORS.text} />
+                <Text style={styles.actionButtonText}>Documents</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -627,6 +639,9 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: COLORS.success,
+  },
+  documentsButton: {
+    backgroundColor: COLORS.secondary,
   },
   actionButtonText: {
     fontSize: 16,

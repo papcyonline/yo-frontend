@@ -27,6 +27,13 @@ interface Status {
   content: {
     text?: string;
     type: 'text' | 'image' | 'text_with_image';
+    style?: {
+      background_color?: string;
+      font_size?: number;
+      text_color?: string;
+      font_family?: string;
+      text_alignment?: string;
+    };
   };
   media?: {
     image_url?: string;
@@ -237,6 +244,10 @@ const StatusFeedScreen: React.FC = () => {
       onShare={handleShare}
       onUserPress={handleUserPress}
       onDelete={handleDelete}
+      onStatusPress={(status) => {
+        console.log('Status pressed:', status._id);
+        // TODO: Implement status view modal here if needed
+      }}
     />
   ), [currentUserId, handleLike, handleComment, handleShare, handleUserPress, handleDelete]);
 

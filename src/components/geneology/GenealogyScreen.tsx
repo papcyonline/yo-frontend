@@ -1,5 +1,5 @@
 // src/screens/main/GenealogyDashboard.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,15 @@ import {
   TouchableOpacity,
   StatusBar,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { Person } from './Person';
-import { PersonNode } from './PersonNode';
-import { PersonDetailModal } from './PersonDetailModal';
-import { EditPersonModal } from './EditPersonModal';
-import { AddChildModal } from './AddChildModal';
-import { useFamilyTree } from './useFamilyTree';
+import genealogyService from '../../services/genealogyService';
+import { useAuthStore } from '../../store/authStore';
+import { COLORS } from '../../constants/colors';
 import { getSystemFont } from '../../config/constants';
 
 const { width, height } = Dimensions.get('window');
@@ -48,6 +47,26 @@ const GenealogyDashboard: React.FC<GenealogyDashboardProps> = ({ navigation, rou
   const [showPersonModal, setShowPersonModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddChildModal, setShowAddChildModal] = useState(false);
+
+  // Auto-scroll to show the family tree properly when it loads
+  React.useEffect(() => {
+    if (Object.keys(familyTree).length > 0 && scrollViewRef.current) {
+      // Find the current user's generation (typically generation 0)
+      const userGeneration = Object.values(familyTree).find(person => person.isCurrentUser)?.generation || 0;
+      
+      // Calculate rough position to scroll to the user's generation
+      // Each generation takes approximately 200 pixels (generationContainer height + margins)
+      const scrollPosition = Math.max(0, userGeneration * 200 - 200); // Show some context above
+      
+      // Scroll to the calculated position with a slight delay to ensure rendering is complete
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({
+          y: scrollPosition,
+          animated: true,
+        });
+      }, 300);
+    }
+  }, [familyTree]);
 
   const handlePersonPress = (person: Person) => {
     setSelectedPerson(person);
@@ -159,40 +178,10 @@ const GenealogyDashboard: React.FC<GenealogyDashboardProps> = ({ navigation, rou
     );
   };
 
-  // Generate subtle dots pattern (reduced for mobile)
-  const generateDots = () => {
-    const dots = [];
-    const dotsPerRow = Math.floor(width / 40);
-    const dotsPerColumn = Math.floor(height / 40);
-    
-    for (let i = 0; i < dotsPerColumn; i++) {
-      for (let j = 0; j < dotsPerRow; j++) {
-        dots.push(
-          <View
-            key={`dot-${i}-${j}`}
-            style={[
-              styles.dot,
-              {
-                top: i * 40 + 10,
-                left: j * 40 + 10,
-                opacity: 0.05, // Much more subtle
-              }
-            ]}
-          />
-        );
-      }
-    }
-    return dots;
-  };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0091ad" />
-      
-      {/* Background Dots */}
-      <View style={styles.dotsContainer}>
-        {generateDots()}
-      </View>
       
       {/* Header */}
       <View style={styles.header}>
@@ -285,22 +274,7 @@ const GenealogyDashboard: React.FC<GenealogyDashboardProps> = ({ navigation, rou
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
-  },
-  dotsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    zIndex: 1,
-  },
-  dot: {
-    position: 'absolute',
-    width: 2,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#2a2a2a',
   },
   header: {
     position: 'relative',

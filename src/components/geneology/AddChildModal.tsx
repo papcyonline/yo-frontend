@@ -26,6 +26,7 @@ interface NewPersonData {
   yearOfBirth: string;
   placeOfBirth: string;
   gender: 'male' | 'female';
+  relationshipType?: 'child' | 'parent' | 'sibling' | 'spouse';
   bio?: string;
   profilePhoto?: string;
   galleryImages?: string[];
@@ -240,6 +241,68 @@ export const AddChildModal: React.FC<AddChildModalProps> = ({
                   />
                   <Text style={[styles.genderText, personData.gender === 'female' && styles.genderTextActive]}>
                     Female
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Relationship Type Selection */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Relationship to Selected Person</Text>
+              <View style={styles.relationshipGrid}>
+                <TouchableOpacity
+                  style={[styles.relationshipOption, personData.relationshipType === 'child' && styles.relationshipOptionActive]}
+                  onPress={() => updateField('relationshipType', 'child')}
+                >
+                  <Ionicons 
+                    name="arrow-down" 
+                    size={16} 
+                    color={personData.relationshipType === 'child' ? COLORS.primary : COLORS.textSecondary} 
+                  />
+                  <Text style={[styles.relationshipText, personData.relationshipType === 'child' && styles.relationshipTextActive]}>
+                    Child
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.relationshipOption, personData.relationshipType === 'parent' && styles.relationshipOptionActive]}
+                  onPress={() => updateField('relationshipType', 'parent')}
+                >
+                  <Ionicons 
+                    name="arrow-up" 
+                    size={16} 
+                    color={personData.relationshipType === 'parent' ? COLORS.primary : COLORS.textSecondary} 
+                  />
+                  <Text style={[styles.relationshipText, personData.relationshipType === 'parent' && styles.relationshipTextActive]}>
+                    Parent
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.relationshipOption, personData.relationshipType === 'sibling' && styles.relationshipOptionActive]}
+                  onPress={() => updateField('relationshipType', 'sibling')}
+                >
+                  <Ionicons 
+                    name="people" 
+                    size={16} 
+                    color={personData.relationshipType === 'sibling' ? COLORS.primary : COLORS.textSecondary} 
+                  />
+                  <Text style={[styles.relationshipText, personData.relationshipType === 'sibling' && styles.relationshipTextActive]}>
+                    Sibling
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.relationshipOption, personData.relationshipType === 'spouse' && styles.relationshipOptionActive]}
+                  onPress={() => updateField('relationshipType', 'spouse')}
+                >
+                  <Ionicons 
+                    name="heart" 
+                    size={16} 
+                    color={personData.relationshipType === 'spouse' ? COLORS.primary : COLORS.textSecondary} 
+                  />
+                  <Text style={[styles.relationshipText, personData.relationshipType === 'spouse' && styles.relationshipTextActive]}>
+                    Spouse
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -492,6 +555,39 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   genderTextActive: {
+    color: COLORS.primary,
+  },
+  
+  // Relationship Type Selection
+  relationshipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  relationshipOption: {
+    flex: 1,
+    minWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 8,
+  },
+  relationshipOptionActive: {
+    backgroundColor: `${COLORS.primary}15`,
+    borderColor: COLORS.primary,
+  },
+  relationshipText: {
+    fontSize: 12,
+    fontFamily: getSystemFont('medium'),
+    color: COLORS.textSecondary,
+  },
+  relationshipTextActive: {
     color: COLORS.primary,
   },
   

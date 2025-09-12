@@ -136,6 +136,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
     onPress,
     iconName = 'shield-checkmark',
     iconColor = '#0091ad',
+    disabled = false,
   }: {
     title: string;
     subtitle: string;
@@ -146,6 +147,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
     onPress?: () => void;
     iconName?: string;
     iconColor?: string;
+    disabled?: boolean;
   }) => (
     <TouchableOpacity
       style={styles.privacyItem}
@@ -169,6 +171,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
           onValueChange={onValueChange}
           trackColor={{ false: '#333333', true: '#0091ad' }}
           thumbColor={value ? '#fcd3aa' : '#666666'}
+          disabled={disabled}
         />
       )}
       {type === 'select' && (
@@ -361,6 +364,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onPress={showProfileVisibilityOptions}
               iconName="eye"
               iconColor="#0091ad"
+              disabled={updating}
             />
             <PrivacyItem
               title="Show Online Status"
@@ -369,6 +373,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('show_online_status', value)}
               iconName="radio-button-on"
               iconColor="#04a7c7"
+              disabled={updating}
             />
             <PrivacyItem
               title="Show Last Seen"
@@ -377,6 +382,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('show_last_seen', value)}
               iconName="time"
               iconColor="#0091ad"
+              disabled={updating}
             />
             <PrivacyItem
               title="Show Phone Number"
@@ -385,6 +391,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('show_phone_number', value)}
               iconName="call"
               iconColor="#04a7c7"
+              disabled={updating}
             />
             <PrivacyItem
               title="Show Email Address"
@@ -393,6 +400,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('show_email', value)}
               iconName="mail"
               iconColor="#0091ad"
+              disabled={updating}
             />
           </View>
         </View>
@@ -413,6 +421,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('allow_friend_requests', value)}
               iconName="person-add"
               iconColor="#04a7c7"
+              disabled={updating}
             />
             <PrivacyItem
               title="Message Requests"
@@ -421,6 +430,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('allow_message_requests', value)}
               iconName="chatbubble"
               iconColor="#0091ad"
+              disabled={updating}
             />
             <PrivacyItem
               title="Allow Tagging"
@@ -429,6 +439,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('allow_tagging', value)}
               iconName="pricetag"
               iconColor="#04a7c7"
+              disabled={updating}
             />
           </View>
         </View>
@@ -449,6 +460,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('share_location', value)}
               iconName="navigate"
               iconColor="#fcd3aa"
+              disabled={updating}
             />
           </View>
         </View>
@@ -469,6 +481,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('data_analytics', value)}
               iconName="stats-chart"
               iconColor="#0091ad"
+              disabled={updating}
             />
             <PrivacyItem
               title="Ad Personalization"
@@ -477,6 +490,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ navigation, route }) 
               onValueChange={(value) => updatePrivacySetting('ad_personalization', value)}
               iconName="megaphone"
               iconColor="#04a7c7"
+              disabled={updating}
             />
           </View>
         </View>

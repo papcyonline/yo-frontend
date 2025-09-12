@@ -72,6 +72,8 @@ const UpdatesScreen: React.FC = () => {
   const [hasMoreData, setHasMoreData] = useState(true);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
+  const [userStatuses, setUserStatuses] = useState<Status[]>([]);
+  const [currentStatusIndex, setCurrentStatusIndex] = useState(0);
   const [offset, setOffset] = useState(0);
 
   const LIMIT = 20;
@@ -138,14 +140,42 @@ const UpdatesScreen: React.FC = () => {
     setIsLoadingMore(false);
   }, [fetchStatusFeed, offset, hasMoreData, isLoadingMore]);
 
+  // Fetch all statuses from the same user
+  const fetchUserStatuses = async (userId: string): Promise<Status[]> => {
+    try {
+      // Filter from existing statuses
+      const userStatuses = statuses.filter(status => status.user_id._id === userId);
+      return userStatuses;
+    } catch (error) {
+      console.error('Error fetching user statuses:', error);
+      return [];
+    }
+  };
+
   // Handle status press for viewing
-  const handleStatusPress = (status: Status) => {
+  const handleStatusPress = async (status: Status) => {
     setSelectedStatus(status);
+    
+    // Fetch all statuses from the same user
+    const statusesFromUser = await fetchUserStatuses(status.user_id._id);
+    setUserStatuses(statusesFromUser);
+    
+    // Find the index of the selected status
+    const statusIndex = statusesFromUser.findIndex(s => s._id === status._id);
+    setCurrentStatusIndex(Math.max(0, statusIndex));
+    
     setShowViewModal(true);
     
     // Record view if not own status
     if (status.user_id._id !== currentUserId) {
       StatusAPI.recordView(status._id).catch(console.error);
+    }
+  };
+
+  const handleStatusChange = (newIndex: number) => {
+    if (newIndex >= 0 && newIndex < userStatuses.length) {
+      setCurrentStatusIndex(newIndex);
+      setSelectedStatus(userStatuses[newIndex]);
     }
   };
 
@@ -240,6 +270,7 @@ const UpdatesScreen: React.FC = () => {
       onShare={handleShare}
       onUserPress={handleUserPress}
       onDelete={handleDelete}
+      onStatusPress={handleStatusPress}
     />
   );
 
@@ -321,12 +352,17 @@ const UpdatesScreen: React.FC = () => {
         <StatusViewModal
           visible={showViewModal}
           status={selectedStatus}
+          userStatuses={userStatuses}
+          currentStatusIndex={currentStatusIndex}
           onClose={() => {
             setShowViewModal(false);
             setSelectedStatus(null);
+            setUserStatuses([]);
+            setCurrentStatusIndex(0);
           }}
           currentUserId={currentUserId}
           onDelete={handleDelete}
+          onStatusChange={handleStatusChange}
         />
       )}
     </SafeAreaView>

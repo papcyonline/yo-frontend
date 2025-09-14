@@ -7,8 +7,37 @@ export interface SecuritySettings {
   biometric_enabled: boolean;
   login_alerts: boolean;
   session_timeout: number;
+  password_changed_at?: string;
+  active_sessions_count?: number;
+  account_locked?: boolean;
+  failed_login_attempts?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ActiveSession {
+  id: string;
+  device_type: string;
+  device_name: string;
+  ip_address: string;
+  location: string;
+  login_at: string;
+  last_activity: string;
+  last_activity_ago: string;
+  is_current: boolean;
+  is_suspicious: boolean;
+}
+
+export interface LoginHistory {
+  id: string;
+  ip_address: string;
+  location: string;
+  device_info: string;
+  login_at: string;
+  logout_at?: string;
+  login_method: string;
+  is_suspicious: boolean;
+  duration?: number;
 }
 
 class SecurityService {
@@ -88,6 +117,144 @@ class SecurityService {
       }
     } catch (error) {
       console.error('Change password error:', error);
+      throw error;
+    }
+  }
+
+  async getActiveSessions(token: string): Promise<ActiveSession[]> {
+    try {
+      console.log('📱 Getting active sessions');
+      const response = await fetch(`${this.baseURL}/security/active-sessions`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to get active sessions');
+      }
+
+      return data.data.sessions || [];
+    } catch (error) {
+      console.error('Get active sessions error:', error);
+      throw error;
+    }
+  }
+
+  async terminateSession(token: string, sessionId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseURL}/security/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to terminate session');
+      }
+    } catch (error) {
+      console.error('Terminate session error:', error);
+      throw error;
+    }
+  }
+
+  async terminateOtherSessions(token: string): Promise<number> {
+    try {
+      const response = await fetch(`${this.baseURL}/security/sessions/terminate-others`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to terminate other sessions');
+      }
+
+      return data.data.terminatedSessions || 0;
+    } catch (error) {
+      console.error('Terminate other sessions error:', error);
+      throw error;
+    }
+  }
+
+  async getLoginHistory(token: string, limit: number = 50): Promise<LoginHistory[]> {
+    try {
+      console.log('📊 Getting login history');
+      const response = await fetch(`${this.baseURL}/security/login-history?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to get login history');
+      }
+
+      return data.data.loginHistory || [];
+    } catch (error) {
+      console.error('Get login history error:', error);
+      throw error;
+    }
+  }
+
+  async getSecurityAnalysis(token: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL}/security/analysis`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to get security analysis');
+      }
+
+      return data.data.analysis;
+    } catch (error) {
+      console.error('Get security analysis error:', error);
+      throw error;
+    }
+  }
+
+  async getSecurityRecommendations(token: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL}/security/recommendations`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to get security recommendations');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('Get security recommendations error:', error);
       throw error;
     }
   }

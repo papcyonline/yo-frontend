@@ -16,18 +16,9 @@ import { getSystemFont } from '../../config/constants';
 import { API_CONFIG } from '../../constants/api';
 import { useAuthStore } from '../../store/authStore';
 import logger from '../../services/LoggingService';
+import { securityService, LoginHistory } from '../../services/securityService';
 
-interface LoginRecord {
-  id: string;
-  timestamp: string;
-  deviceName: string;
-  deviceType: 'mobile' | 'desktop' | 'tablet';
-  location: string;
-  ipAddress: string;
-  userAgent: string;
-  success: boolean;
-  method: 'password' | 'social' | '2fa';
-}
+// Using LoginHistory from securityService instead
 
 interface LoginHistoryScreenProps {
   navigation: any;
@@ -35,7 +26,7 @@ interface LoginHistoryScreenProps {
 
 const LoginHistoryScreen: React.FC<LoginHistoryScreenProps> = ({ navigation }) => {
   const { token } = useAuthStore();
-  const [loginHistory, setLoginHistory] = useState<LoginRecord[]>([]);
+  const [loginHistory, setLoginHistory] = useState<LoginHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -53,61 +44,43 @@ const LoginHistoryScreen: React.FC<LoginHistoryScreenProps> = ({ navigation }) =
         return;
       }
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/login-history`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.success) {
-        setLoginHistory(result.data.history || []);
-        logger.info(`Loaded ${result.data.history?.length || 0} login records`);
-      } else {
-        throw new Error(result.message || 'Failed to load login history');
-      }
+      const history = await securityService.getLoginHistory(token, 50);
+      setLoginHistory(history);
+      logger.info(`Loaded ${history.length} login records`);
     } catch (error) {
       logger.error('Error loading login history', error);
       // Mock data for demonstration
       setLoginHistory([
         {
           id: '1',
-          timestamp: new Date().toISOString(),
-          deviceName: 'iPhone 15 Pro',
-          deviceType: 'mobile',
+          login_at: new Date().toISOString(),
+          device_info: 'iPhone 15 Pro mobile',
           location: 'New York, NY',
-          ipAddress: '192.168.1.100',
-          userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
-          success: true,
-          method: 'password'
+          ip_address: '192.168.1.100',
+          login_method: 'password',
+          is_suspicious: false,
+          logout_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          duration: 3600
         },
         {
           id: '2',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          deviceName: 'Chrome Browser',
-          deviceType: 'desktop',
+          login_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          device_info: 'Chrome Browser desktop',
           location: 'San Francisco, CA',
-          ipAddress: '192.168.1.101',
-          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-          success: true,
-          method: '2fa'
+          ip_address: '192.168.1.101',
+          login_method: '2fa',
+          is_suspicious: false,
+          logout_at: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString(),
+          duration: 3600
         },
         {
           id: '3',
-          timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          deviceName: 'Unknown Device',
-          deviceType: 'mobile',
+          login_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          device_info: 'Unknown Device mobile',
           location: 'Los Angeles, CA',
-          ipAddress: '10.0.0.1',
-          userAgent: 'Unknown',
-          success: false,
-          method: 'password'
+          ip_address: '10.0.0.1',
+          login_method: 'password',
+          is_suspicious: true
         }
       ]);
     } finally {
@@ -165,10 +138,10 @@ const LoginHistoryScreen: React.FC<LoginHistoryScreenProps> = ({ navigation }) =
     }
   };
 
-  const renderLoginRecord = ({ item }: { item: LoginRecord }) => (
-    <View style={[styles.recordCard, !item.success && styles.failedRecord]}>
+  const renderLoginRecord = ({ item }: { item: LoginHistory }) => (
+    <View style={[styles.recordCard, item.is_suspicious && styles.failedRecord]}>
       <LinearGradient
-        colors={item.success 
+        colors={!item.is_suspicious 
           ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']
           : ['rgba(239,68,68,0.1)', 'rgba(239,68,68,0.05)']
         }
@@ -177,19 +150,19 @@ const LoginHistoryScreen: React.FC<LoginHistoryScreenProps> = ({ navigation }) =
         <View style={styles.recordContent}>
           <View style={styles.recordHeader}>
             <View style={styles.deviceInfo}>
-              <View style={[styles.deviceIcon, !item.success && styles.failedDeviceIcon]}>
+              <View style={[styles.deviceIcon, item.is_suspicious && styles.failedDeviceIcon]}>
                 <Ionicons 
-                  name={getDeviceIcon(item.deviceType) as any} 
+                  name={getDeviceIcon(item.device_info?.split(' ')[1] || 'desktop') as any} 
                   size={20} 
-                  color={item.success ? '#ffffff' : '#ef4444'} 
+                  color={!item.is_suspicious ? '#ffffff' : '#ef4444'} 
                 />
               </View>
               <View style={styles.deviceDetails}>
-                <Text style={[styles.deviceName, !item.success && styles.failedText]}>
-                  {item.deviceName}
+                <Text style={[styles.deviceName, item.is_suspicious && styles.failedText]}>
+                  {item.device_info}
                 </Text>
                 <Text style={styles.timestamp}>
-                  {formatTimestamp(item.timestamp)}
+                  {formatTimestamp(item.login_at)}
                 </Text>
                 <Text style={styles.location}>{item.location}</Text>
               </View>
@@ -198,33 +171,33 @@ const LoginHistoryScreen: React.FC<LoginHistoryScreenProps> = ({ navigation }) =
             <View style={styles.statusContainer}>
               <View style={styles.methodInfo}>
                 <Ionicons 
-                  name={getMethodIcon(item.method) as any} 
+                  name={getMethodIcon(item.login_method) as any} 
                   size={16} 
-                  color={item.success ? '#0091ad' : '#ef4444'} 
+                  color={!item.is_suspicious ? '#0091ad' : '#ef4444'} 
                 />
-                <Text style={[styles.methodText, !item.success && styles.failedText]}>
-                  {item.method.toUpperCase()}
+                <Text style={[styles.methodText, item.is_suspicious && styles.failedText]}>
+                  {item.login_method.toUpperCase()}
                 </Text>
               </View>
               
-              <View style={[styles.statusBadge, item.success ? styles.successBadge : styles.failedBadge]}>
+              <View style={[styles.statusBadge, !item.is_suspicious ? styles.successBadge : styles.failedBadge]}>
                 <Ionicons 
-                  name={item.success ? 'checkmark-circle' : 'close-circle'} 
+                  name={!item.is_suspicious ? 'checkmark-circle' : 'close-circle'} 
                   size={16} 
-                  color={item.success ? '#22c55e' : '#ef4444'} 
+                  color={!item.is_suspicious ? '#22c55e' : '#ef4444'} 
                 />
-                <Text style={[styles.statusText, item.success ? styles.successText : styles.failedStatusText]}>
-                  {item.success ? 'Success' : 'Failed'}
+                <Text style={[styles.statusText, !item.is_suspicious ? styles.successText : styles.failedStatusText]}>
+                  {!item.is_suspicious ? 'Success' : 'Suspicious'}
                 </Text>
               </View>
             </View>
           </View>
           
           <View style={styles.recordMeta}>
-            <Text style={styles.ipAddress}>IP: {item.ipAddress}</Text>
+            <Text style={styles.ipAddress}>IP: {item.ip_address}</Text>
             <View style={styles.statusDot} />
             <Text style={styles.userAgent} numberOfLines={1}>
-              {item.userAgent.substring(0, 40)}...
+              {item.device_info.substring(0, 40)}...
             </Text>
           </View>
         </View>

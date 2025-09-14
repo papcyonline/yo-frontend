@@ -4,7 +4,7 @@ const getApiBaseUrl = () => {
     // In development, use DEV_API_BASE_URL if set, otherwise fallback to API_BASE_URL
     return process.env.EXPO_PUBLIC_DEV_API_BASE_URL || 
            process.env.EXPO_PUBLIC_API_BASE_URL || 
-           'http://192.168.1.231:3018/api';
+           'http://192.168.1.231:3050/api';
   } else {
     // In production, use PRODUCTION_API_BASE_URL or fallback to API_BASE_URL
     return process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL || 

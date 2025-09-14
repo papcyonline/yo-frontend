@@ -186,12 +186,18 @@ const WorkflowGenealogyScreen: React.FC<WorkflowGenealogyScreenProps> = ({ navig
   // Memoize SVG connections rendering for performance with error handling
   const memoizedConnectionsJSX = useMemo(() => {
     console.log('🔗 Rendering connections, count:', connections.length);
-    
+
     if (!Array.isArray(connections) || connections.length === 0) {
       console.log('❌ No connections to render');
       return null;
     }
-    
+
+    // Safety: Limit connections to prevent crashes
+    if (connections.length > 50) {
+      console.warn('⚠️ Too many connections for stability, limiting to 50');
+      return null;
+    }
+
     try {
       return connections.filter(isValidConnection).map((connection, index) => {
         const startX = connection.fromX;
@@ -245,28 +251,22 @@ const WorkflowGenealogyScreen: React.FC<WorkflowGenealogyScreenProps> = ({ navig
           <Circle cx={endX} cy={endY} r="3" fill={strokeColor} opacity={0.7} />
           
           {connection.type === 'spouse' && (
-            <SvgText
-              x={(startX + endX) / 2}
-              y={(startY + endY) / 2 - LAYOUT_CONSTANTS.SVG_TEXT_OFFSET}
+            <Circle
+              cx={(startX + endX) / 2}
+              cy={(startY + endY) / 2}
+              r="4"
               fill="#FFB6C1"
-              fontSize={LAYOUT_CONSTANTS.SVG_FONT_SIZE}
-              textAnchor="middle"
               opacity={0.8}
-            >
-              ⚭
-            </SvgText>
+            />
           )}
           {connection.type === 'sibling' && (
-            <SvgText
-              x={(startX + endX) / 2}
-              y={(startY + endY) / 2 - LAYOUT_CONSTANTS.SVG_TEXT_OFFSET}
+            <Circle
+              cx={(startX + endX) / 2}
+              cy={(startY + endY) / 2}
+              r="3"
               fill="#87CEEB"
-              fontSize={LAYOUT_CONSTANTS.SVG_FONT_SIZE}
-              textAnchor="middle"
               opacity={0.8}
-            >
-              ↔
-            </SvgText>
+            />
           )}
         </React.Fragment>
       );
@@ -1621,10 +1621,10 @@ const WorkflowGenealogyScreen: React.FC<WorkflowGenealogyScreenProps> = ({ navig
     }
 
     return (
-      <Svg 
+      <Svg
         style={StyleSheet.absoluteFillObject}
-        width={width * 3}
-        height={height * 3}
+        width={width * 1.5}
+        height={height * 1.5}
         pointerEvents="none"
       >
         {paths}
@@ -1633,15 +1633,20 @@ const WorkflowGenealogyScreen: React.FC<WorkflowGenealogyScreenProps> = ({ navig
     );
   };
 
-  // Generate subtle family tree background pattern
+  // Generate subtle family tree background pattern (Android-safe)
   const renderSubtleBackground = () => {
+    // Significantly reduced complexity for Android stability
     const dots = [];
-    const dotSpacing = 60; // Much more spaced out
-    const canvasWidth = width * 3; // Reduced from 4x to 2x
-    const canvasHeight = height * 3; // Reduced from 4x to 2x
-    
-    for (let x = 0; x < canvasWidth; x += dotSpacing) {
-      for (let y = 0; y < canvasHeight; y += dotSpacing) {
+    const dotSpacing = 120; // Much larger spacing
+    const canvasWidth = width * 1.5; // Reduced canvas size
+    const canvasHeight = height * 1.5; // Reduced canvas size
+
+    // Limit total dots to prevent Android memory issues
+    const maxDots = 50;
+    let dotCount = 0;
+
+    for (let x = 0; x < canvasWidth && dotCount < maxDots; x += dotSpacing) {
+      for (let y = 0; y < canvasHeight && dotCount < maxDots; y += dotSpacing) {
         dots.push(
           <Circle
             key={`dot-${x}-${y}`}
@@ -1649,17 +1654,19 @@ const WorkflowGenealogyScreen: React.FC<WorkflowGenealogyScreenProps> = ({ navig
             cy={y}
             r="1"
             fill="#ffffff"
-            opacity={0.1} // Very subtle
+            opacity={0.05} // Even more subtle
           />
         );
+        dotCount++;
       }
     }
 
     return (
-      <Svg 
+      <Svg
         style={StyleSheet.absoluteFillObject}
         width={canvasWidth}
         height={canvasHeight}
+        pointerEvents="none"
       >
         <Defs>
           {/* Subtle tree-like pattern */}
@@ -1933,11 +1940,22 @@ const WorkflowGenealogyScreen: React.FC<WorkflowGenealogyScreenProps> = ({ navig
             
             {/* Workflow nodes */}
             <View style={styles.nodesContainer}>
-              {workflowNodes.map(node => (
-                <React.Fragment key={node.id}>
-                  {renderWorkflowNode(node)}
-                </React.Fragment>
-              ))}
+              {workflowNodes.length > 50 ? (
+                <View style={styles.tooManyNodesWarning}>
+                  <Text style={styles.warningText}>
+                    Too many family members to display ({workflowNodes.length})
+                  </Text>
+                  <Text style={styles.warningSubtext}>
+                    Please use search or filters to reduce complexity
+                  </Text>
+                </View>
+              ) : (
+                workflowNodes.map(node => (
+                  <React.Fragment key={node.id}>
+                    {renderWorkflowNode(node)}
+                  </React.Fragment>
+                ))
+              )}
             </View>
           </ScrollView>
         )}
@@ -3192,6 +3210,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#FFFFFF',
+  },
+  tooManyNodesWarning: {
+    position: 'absolute',
+    top: 200,
+    left: 50,
+    right: 50,
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    borderColor: '#ff6b6b',
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  warningText: {
+    color: '#ff6b6b',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  warningSubtext: {
+    color: '#fff',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 

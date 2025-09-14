@@ -17,17 +17,9 @@ import { getSystemFont } from '../../config/constants';
 import { API_CONFIG } from '../../constants/api';
 import { useAuthStore } from '../../store/authStore';
 import logger from '../../services/LoggingService';
+import { securityService, ActiveSession } from '../../services/securityService';
 
-interface Session {
-  id: string;
-  deviceName: string;
-  deviceType: 'mobile' | 'desktop' | 'tablet';
-  location: string;
-  ipAddress: string;
-  lastActive: string;
-  isCurrent: boolean;
-  userAgent: string;
-}
+// Using ActiveSession from securityService instead
 
 interface ActiveSessionsScreenProps {
   navigation: any;
@@ -35,7 +27,7 @@ interface ActiveSessionsScreenProps {
 
 const ActiveSessionsScreen: React.FC<ActiveSessionsScreenProps> = ({ navigation }) => {
   const { token } = useAuthStore();
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [terminatingSession, setTerminatingSession] = useState<string | null>(null);
@@ -54,48 +46,36 @@ const ActiveSessionsScreen: React.FC<ActiveSessionsScreenProps> = ({ navigation 
         return;
       }
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/sessions`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.success) {
-        setSessions(result.data.sessions || []);
-        logger.info(`Loaded ${result.data.sessions?.length || 0} active sessions`);
-      } else {
-        throw new Error(result.message || 'Failed to load sessions');
-      }
+      const activeSessions = await securityService.getActiveSessions(token);
+      setSessions(activeSessions);
+      logger.info(`Loaded ${activeSessions.length} active sessions`);
     } catch (error) {
       logger.error('Error loading sessions', error);
       // For demo purposes, show mock data if API fails
       setSessions([
         {
           id: '1',
-          deviceName: 'iPhone 15 Pro',
-          deviceType: 'mobile',
+          device_name: 'iPhone 15 Pro',
+          device_type: 'mobile',
           location: 'New York, NY',
-          ipAddress: '192.168.1.100',
-          lastActive: new Date().toISOString(),
-          isCurrent: true,
-          userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'
+          ip_address: '192.168.1.100',
+          login_at: new Date().toISOString(),
+          last_activity: new Date().toISOString(),
+          last_activity_ago: 'Just now',
+          is_current: true,
+          is_suspicious: false
         },
         {
           id: '2',
-          deviceName: 'MacBook Pro',
-          deviceType: 'desktop',
+          device_name: 'MacBook Pro',
+          device_type: 'desktop',
           location: 'San Francisco, CA',
-          ipAddress: '192.168.1.101',
-          lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          isCurrent: false,
-          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+          ip_address: '192.168.1.101',
+          login_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          last_activity: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          last_activity_ago: '2 hours ago',
+          is_current: false,
+          is_suspicious: false
         }
       ]);
     } finally {
@@ -123,21 +103,10 @@ const ActiveSessionsScreen: React.FC<ActiveSessionsScreenProps> = ({ navigation 
               setTerminatingSession(sessionId);
               logger.debug(`Terminating session: ${sessionId}`);
 
-              const response = await fetch(`${API_CONFIG.BASE_URL}/auth/sessions/${sessionId}`, {
-                method: 'DELETE',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-              });
-
-              if (response.ok) {
-                setSessions(prev => prev.filter(session => session.id !== sessionId));
-                logger.info(`Session ${sessionId} terminated successfully`);
-                Alert.alert('Success', 'Session terminated successfully.');
-              } else {
-                throw new Error('Failed to terminate session');
-              }
+              await securityService.terminateSession(token, sessionId);
+              setSessions(prev => prev.filter(session => session.id !== sessionId));
+              logger.info(`Session ${sessionId} terminated successfully`);
+              Alert.alert('Success', 'Session terminated successfully.');
             } catch (error) {
               logger.error('Error terminating session', error);
               Alert.alert('Error', 'Failed to terminate session. Please try again.');
@@ -151,7 +120,7 @@ const ActiveSessionsScreen: React.FC<ActiveSessionsScreenProps> = ({ navigation 
   };
 
   const terminateAllOtherSessions = async () => {
-    const otherSessions = sessions.filter(session => !session.isCurrent);
+    const otherSessions = sessions.filter(session => !session.is_current);
     if (otherSessions.length === 0) {
       Alert.alert('No Other Sessions', 'There are no other sessions to terminate.');
       return;
@@ -170,16 +139,9 @@ const ActiveSessionsScreen: React.FC<ActiveSessionsScreenProps> = ({ navigation 
               setLoading(true);
               logger.debug('Terminating all other sessions');
 
-              const response = await fetch(`${API_CONFIG.BASE_URL}/auth/sessions/terminate-others`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-              });
-
-              if (response.ok) {
-                setSessions(prev => prev.filter(session => session.isCurrent));
+              const terminatedCount = await securityService.terminateOtherSessions(token);
+              if (terminatedCount > 0) {
+                setSessions(prev => prev.filter(session => session.is_current));
                 logger.info('All other sessions terminated successfully');
                 Alert.alert('Success', 'All other sessions have been terminated.');
               } else {
@@ -224,10 +186,10 @@ const ActiveSessionsScreen: React.FC<ActiveSessionsScreenProps> = ({ navigation 
     return date.toLocaleDateString();
   };
 
-  const renderSession = ({ item }: { item: Session }) => (
+  const renderSession = ({ item }: { item: ActiveSession }) => (
     <View style={styles.sessionCard}>
       <LinearGradient
-        colors={item.isCurrent 
+        colors={item.is_current 
           ? ['rgba(0,145,173,0.1)', 'rgba(4,167,199,0.05)']
           : ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']
         }
@@ -236,28 +198,28 @@ const ActiveSessionsScreen: React.FC<ActiveSessionsScreenProps> = ({ navigation 
         <View style={styles.sessionContent}>
           <View style={styles.sessionHeader}>
             <View style={styles.deviceInfo}>
-              <View style={[styles.deviceIcon, item.isCurrent && styles.currentDeviceIcon]}>
-                <Ionicons 
-                  name={getDeviceIcon(item.deviceType) as any} 
-                  size={24} 
-                  color={item.isCurrent ? '#0091ad' : '#ffffff'} 
+              <View style={[styles.deviceIcon, item.is_current && styles.currentDeviceIcon]}>
+                <Ionicons
+                  name={getDeviceIcon(item.device_type) as any}
+                  size={24}
+                  color={item.is_current ? '#0091ad' : '#ffffff'} 
                 />
               </View>
               <View style={styles.deviceDetails}>
                 <View style={styles.deviceNameContainer}>
-                  <Text style={styles.deviceName}>{item.deviceName}</Text>
-                  {item.isCurrent && (
+                  <Text style={styles.deviceName}>{item.device_name}</Text>
+                  {item.is_current && (
                     <View style={styles.currentBadge}>
                       <Text style={styles.currentBadgeText}>Current</Text>
                     </View>
                   )}
                 </View>
                 <Text style={styles.deviceLocation}>{item.location}</Text>
-                <Text style={styles.lastActive}>{formatLastActive(item.lastActive)}</Text>
+                <Text style={styles.lastActive}>{item.last_activity_ago || formatLastActive(item.last_activity)}</Text>
               </View>
             </View>
             
-            {!item.isCurrent && (
+            {!item.is_current && (
               <TouchableOpacity
                 style={styles.terminateButton}
                 onPress={() => terminateSession(item.id)}
@@ -273,10 +235,10 @@ const ActiveSessionsScreen: React.FC<ActiveSessionsScreenProps> = ({ navigation 
           </View>
           
           <View style={styles.sessionMeta}>
-            <Text style={styles.ipAddress}>IP: {item.ipAddress}</Text>
+            <Text style={styles.ipAddress}>IP: {item.ip_address}</Text>
             <View style={styles.statusDot} />
             <Text style={styles.sessionStatus} numberOfLines={1}>
-              {item.userAgent.substring(0, 50)}...
+              {(item.device_name + ' ' + item.device_type).substring(0, 50)}...
             </Text>
           </View>
         </View>

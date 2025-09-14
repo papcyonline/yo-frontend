@@ -1,11 +1,11 @@
 // src/screens/FriendsPage.tsx - Updated with black background and custom colors
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   RefreshControl,
   Alert,
   Image
@@ -571,39 +571,47 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ navigation, route }) => {
         </View>
       </View>
 
-      {/* Clean Tabs */}
-      <View style={styles.cleanTabContainer}>
-        {tabs.map((tab, index) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.cleanTab, activeTab === index && styles.activeCleanTab]}
-            onPress={() => setActiveTab(index)}
-          >
-            <Text style={[styles.cleanTabText, activeTab === index && styles.activeCleanTabText]}>
-              {tab}
-            </Text>
-            {activeTab === index && <View style={styles.cleanTabIndicator} />}
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Compact Tab Pills with inline stats */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.compactTabsContainer}
+        contentContainerStyle={styles.compactTabsContent}
+      >
+        <TouchableOpacity
+          style={[styles.compactTab, activeTab === 0 && styles.activeCompactTab]}
+          onPress={() => setActiveTab(0)}
+        >
+          <Text style={[styles.compactTabText, activeTab === 0 && styles.activeCompactTabText]}>
+            My Friends
+          </Text>
+          <Text style={[styles.compactTabCount, activeTab === 0 && styles.activeCompactTabCount]}>
+            {myFriends.length}
+          </Text>
+        </TouchableOpacity>
 
-      {/* Clean Stats */}
-      <View style={styles.cleanStatsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.cleanStatNumber}>{myFriends.length}</Text>
-          <Text style={styles.cleanStatLabel}>Friends</Text>
+        <TouchableOpacity
+          style={[styles.compactTab, activeTab === 1 && styles.activeCompactTab]}
+          onPress={() => setActiveTab(1)}
+        >
+          <Text style={[styles.compactTabText, activeTab === 1 && styles.activeCompactTabText]}>
+            AI Match
+          </Text>
+          <Text style={[styles.compactTabCount, activeTab === 1 && styles.activeCompactTabCount]}>
+            {friendSuggestions.length}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.compactTab}>
+          <Text style={styles.compactTabText}>Suggestions</Text>
+          <Text style={styles.compactTabCount}>{friendSuggestions.length}</Text>
         </View>
-        <View style={styles.cleanStatDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.cleanStatNumber}>{friendSuggestions.length}</Text>
-          <Text style={styles.cleanStatLabel}>Suggestions</Text>
+
+        <View style={styles.compactTab}>
+          <Text style={styles.compactTabText}>Mutual</Text>
+          <Text style={styles.compactTabCount}>25</Text>
         </View>
-        <View style={styles.cleanStatDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.cleanStatNumber}>25</Text>
-          <Text style={styles.cleanStatLabel}>Mutual</Text>
-        </View>
-      </View>
+      </ScrollView>
 
       {/* Content */}
       <ScrollView
@@ -649,34 +657,34 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   
-  // Clean Header
+  // Clean Header - More compact
   cleanHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: 45,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
     backgroundColor: '#000000',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(252, 211, 170, 0.1)',
   },
   cleanBackButton: {
-    padding: 10,
-    borderRadius: 22,
+    padding: 8,
+    borderRadius: 20,
     backgroundColor: 'rgba(252, 211, 170, 0.1)',
   },
   cleanHeaderTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#fcd3aa',
     flex: 1,
     textAlign: 'center',
-    marginHorizontal: 16,
+    marginHorizontal: 12,
   },
   cleanFilterButton: {
-    padding: 10,
-    borderRadius: 22,
+    padding: 8,
+    borderRadius: 20,
     backgroundColor: 'rgba(252, 211, 170, 0.1)',
   },
   headerActions: {
@@ -684,80 +692,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   
-  // Clean Tabs
-  cleanTabContainer: {
+  // Compact Tabs with inline stats
+  compactTabsContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+    maxHeight: 44,
+  },
+  compactTabsContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  compactTab: {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 16,
-    padding: 4,
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(252, 211, 170, 0.1)',
+    marginRight: 8,
   },
-  cleanTab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    position: 'relative',
-  },
-  activeCleanTab: {
-    backgroundColor: 'rgba(252, 211, 170, 0.1)',
-  },
-  cleanTabText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  activeCleanTabText: {
-    color: '#fcd3aa',
-    fontWeight: '700',
-  },
-  cleanTabIndicator: {
-    position: 'absolute',
-    bottom: 4,
-    left: '50%',
-    transform: [{ translateX: -12 }],
-    width: 24,
-    height: 2,
-    backgroundColor: '#fcd3aa',
-    borderRadius: 1,
-  },
-  
-  // Clean Stats
-  cleanStatsContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(252, 211, 170, 0.08)',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  cleanStatNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fcd3aa',
-    marginBottom: 4,
-  },
-  cleanStatLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-  },
-  cleanStatDivider: {
-    width: 1,
-    height: 32,
+  activeCompactTab: {
     backgroundColor: 'rgba(252, 211, 170, 0.15)',
-    marginHorizontal: 16,
+    borderColor: '#fcd3aa',
+  },
+  compactTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginRight: 6,
+  },
+  activeCompactTabText: {
+    color: '#fcd3aa',
+  },
+  compactTabCount: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  activeCompactTabCount: {
+    color: '#fcd3aa',
+    backgroundColor: 'rgba(252, 211, 170, 0.2)',
   },
   
   // Content
@@ -769,10 +749,10 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   
-  // Modern Tab Content with Dividers
+  // Modern Tab Content with Dividers - More compact
   modernTabContent: {
-    paddingHorizontal: 8,
-    paddingVertical: 16,
+    paddingHorizontal: 0,
+    paddingVertical: 8,
   },
   
   modernFriendItem: {
@@ -781,10 +761,10 @@ const styles = StyleSheet.create({
   
   // Friend Dividers (matching match grid style)
   friendDivider: {
-    height: 2,
+    height: 1,
     marginHorizontal: 12,
-    marginLeft: 68, // Align with content (8 + 48 + 12)
-    marginVertical: 2,
+    marginLeft: 62, // Align with content (16 + 38 + 12)
+    marginVertical: 0,
   },
   
   dividerGradient: {
@@ -957,24 +937,24 @@ const styles = StyleSheet.create({
   
   // ===== CLEAN ELEGANT FRIEND CARD STYLES =====
   
-  // Clean Friend Card Container - Optimized for 4-5 on screen
+  // Clean Friend Card Container - More compact for 6-7 on screen
   cleanFriendCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     backgroundColor: 'transparent',
   },
   
   // Avatar Section
   avatarSection: {
-    marginRight: 16,
+    marginRight: 12,
   },
   
   cleanAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -984,17 +964,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
   },
-  
+
   cleanAvatarText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#ffffff',
   },
 
   cleanAvatarImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
   
   onlineStatus: {
@@ -1020,11 +1000,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   
   cleanFriendName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#ffffff',
     flex: 1,
@@ -1051,11 +1031,11 @@ const styles = StyleSheet.create({
   },
   
   cleanBio: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 17,
-    marginBottom: 6,
+    lineHeight: 16,
+    marginBottom: 4,
   },
   
   metaInfo: {
@@ -1094,24 +1074,24 @@ const styles = StyleSheet.create({
   actionSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 36,
+    width: 32,
   },
-  
+
   addAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(0, 145, 173, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(0, 145, 173, 0.2)',
   },
-  
+
   chatAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(252, 211, 170, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',

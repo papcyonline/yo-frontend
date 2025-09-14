@@ -448,8 +448,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 50,
-    paddingBottom: 16,
+    paddingTop: 20,
+    paddingBottom: 8,
     paddingHorizontal: 20,
     backgroundColor: '#000000',
     borderBottomWidth: 1,
@@ -457,13 +457,13 @@ const styles = StyleSheet.create({
   },
   
   backButton: {
-    padding: 12,
-    borderRadius: 24,
+    padding: 8,
+    borderRadius: 20,
     backgroundColor: 'rgba(252,211,170,0.08)',
   },
   
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: getSystemFont('bold'),
     color: '#fcd3aa',
     flex: 1,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   // Count Container
   countContainer: {
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 8,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
   
   notificationsList: {
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 20,
   },
   

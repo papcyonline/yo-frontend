@@ -75,8 +75,8 @@ class GenealogyService {
   private baseURL: string;
 
   constructor() {
-    // Use main server with genealogy endpoints - network IP for React Native  
-    this.baseURL = 'http://192.168.1.231:3018/api/genealogy';
+    // Use API_CONFIG for consistent URL configuration
+    this.baseURL = `${API_CONFIG.BASE_URL}/genealogy`;
   }
 
   private async getAuthHeaders(): Promise<HeadersInit> {

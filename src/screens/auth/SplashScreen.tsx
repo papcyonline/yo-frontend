@@ -24,27 +24,22 @@ const SplashScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const logoTranslateY = useSharedValue(0);
   
   // Animated text values
-  const textProgress = useSharedValue(0);
   const textOpacity = useSharedValue(0);
 
   useEffect(() => {
-    // Logo animation - appears and shifts up
-    logoOpacity.value = withTiming(1, { duration: 800 });
-    logoScale.value = withSequence(
-      withSpring(1.1, { damping: 6 }),
-      withSpring(1, { damping: 8 })
-    );
-    
-    // Shift logo up after it appears
-    setTimeout(() => {
-      logoTranslateY.value = withSpring(-50, { damping: 8 });
-    }, 800);
+    // Step 1: Logo appears at center (500ms)
+    logoOpacity.value = withTiming(1, { duration: 500 });
+    logoScale.value = withTiming(1, { duration: 500 });
 
-    // Animated text "fam" - starts after logo shifts up
+    // Step 2: Logo slides up after appearing (300ms delay + 400ms animation)
     setTimeout(() => {
-      textOpacity.value = withTiming(1, { duration: 500 });
-      textProgress.value = withTiming(1, { duration: 2000 }); // Type over 2 seconds
-    }, 1200);
+      logoTranslateY.value = withTiming(-60, { duration: 400 });
+    }, 500);
+
+    // Step 3: "fam" text slides in after logo moves up (200ms delay + 300ms animation)
+    setTimeout(() => {
+      textOpacity.value = withTiming(1, { duration: 300 });
+    }, 1100);
 
     // Handle navigation after animation completes
     const handleNavigation = async () => {
@@ -74,8 +69,8 @@ const SplashScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       }
     };
 
-    // Navigate after animation completes (4 seconds)
-    const timer = setTimeout(handleNavigation, 4000);
+    // Navigate after 3 seconds total (logo appears + slides up + text shows for a moment)
+    const timer = setTimeout(handleNavigation, 3000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -89,54 +84,20 @@ const SplashScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   }));
 
   const textAnimatedStyle = useAnimatedStyle(() => {
-    const progress = textProgress.value;
-    
     return {
       opacity: textOpacity.value,
       transform: [
-        { 
-          scale: interpolate(progress, [0, 1], [0.8, 1]) 
+        {
+          translateY: interpolate(textOpacity.value, [0, 1], [30, 0])
         }
       ]
     };
   });
 
-  // Animated character rendering
+  // Simple text display
   const renderAnimatedText = () => {
-    const text = "fam";
-    const characters = text.split('');
-    
     return (
-      <View style={styles.textContainer}>
-        {characters.map((char, index) => {
-          const animatedCharStyle = useAnimatedStyle(() => {
-            const charProgress = interpolate(
-              textProgress.value,
-              [index / characters.length, (index + 1) / characters.length],
-              [0, 1],
-              'clamp'
-            );
-            
-            return {
-              opacity: charProgress,
-              transform: [
-                { 
-                  translateY: interpolate(charProgress, [0, 1], [20, 0]) 
-                }
-              ]
-            };
-          });
-
-          return (
-            <Animated.Text
-              key={index}
-              style={[styles.animatedChar, animatedCharStyle]}
-            >
-              {char}
-            </Animated.Text>
-          );
-        })}
-      </View>
+      <Text style={styles.famText}>fam</Text>
     );
   };
 
@@ -197,15 +158,10 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  textContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  animatedChar: {
+  famText: {
     fontSize: 56,
-    fontFamily: getSystemFont('light'), // Clean system font
+    fontFamily: getSystemFont('light'),
     color: '#fcd3aa', // Brand color that works on both themes
-    marginHorizontal: 1,
     letterSpacing: 2,
   },
 });
